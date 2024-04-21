@@ -1,6 +1,9 @@
 class YoutubeMessageProcessor {
     constructor() {
         this.bttvEmotes = {};
+        // This work belongs to Zaytri
+        // Taken from https://github.com/zaytri/slime2/blob/8d2903e36a4048cbb404be5959005937b14ac49e/src/services/emotes/YouTube.ts
+        // Support them because they are amazing
         this.globalEmoji = [
             {
                 emojiId: 'UCkszU2WH9gy1mb0dV-11UJg/flower-rainbow-heart-red',
