@@ -20,7 +20,7 @@ class TwitchMessageConverter {
         for(let partIndex in messageParts) {
             const part = messageParts[partIndex];
             if (part.type === 'text' || part.type === 'mention') {
-                messageHtml = messageHtml + part.text;
+                messageHtml = messageHtml + part.text.replaceAll('<', '&lt;').replaceAll('>', '&gt;');
             } else if (part.type === 'cheermote') {
                 messageHtml = messageHtml + this.buildCheermoteImageTag(part);
             } else if (part.type === 'emote') {

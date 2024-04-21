@@ -3056,6 +3056,7 @@ class YoutubeMessageProcessor {
     }
 
     processMessage(messageHtml) {
+        messageHtml = messageHtml.replaceAll('<', '&lt;').replaceAll('>', '&gt;')
         messageHtml = this.replaceYoutubeEmoji(messageHtml)
         messageHtml = this.replaceBttvEmotesInMessageHtml(messageHtml)
         return messageHtml
