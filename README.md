@@ -1,4 +1,7 @@
 # Multi-chat Reader
+
+![image](https://github.com/navarr/multi-stream-chat/assets/145128/fdf22578-00fd-41e6-bde4-1e38446de6e2)
+
 ## Supports
 * Twitch
 * TikTok (mostly)
