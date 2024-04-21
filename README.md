@@ -7,9 +7,10 @@
 ## How to Setup
 
 1. Install Node.JS & Bower
-2. `npm install`
-3. `cd pub;bower install`
-4. Rename `.env.sample` to `.env`
+2. [Download and extract the code](https://github.com/navarr/multi-stream-chat/archive/refs/heads/master.zip)
+3. `npm install`
+4. `cd pub;bower install`
+5. Rename `.env.sample` to `.env`
 
 ### NGrok
 To authenticate with Twitch OAuth, this program currently requires ngrok to be running.  For ease of use, we recommend
