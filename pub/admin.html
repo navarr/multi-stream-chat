@@ -55,8 +55,18 @@
         }
         viewModel.twitchConnectUrl = ko.pureComputed(() => {
             const clientId = encodeURIComponent(viewModel.twitchClientId()),
-                redirectUri = encodeURIComponent(viewModel.twitchRedirectUri())
-            return `https://id.twitch.tv/oauth2/authorize?response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}&state=c3ab8aa609ea11e793ae92361f002671&scope=chat%3Aread%20user%3Aread%3Achat%20moderator%3Aread%3Afollowers%20channel%3Aread%3Asubscriptions%20channel%3Aread%3Aredemptions%20channel%3Amanage%3Aredemptions%20moderator:manage:automod%20bits:read`
+                redirectUri = encodeURIComponent(viewModel.twitchRedirectUri()),
+                scope = encodeURIComponent([
+                    'chat:read',
+                    'user:read:chat',
+                    'moderator:read:followers',
+                    'channel:read:subscriptions',
+                    'channel:read:redemptions',
+                    'channel:manage:redemptions',
+                    'moderator:manage:automod',
+                    'bits:read'
+                ].join(' '))
+            return `https://id.twitch.tv/oauth2/authorize?response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}&state=c3ab8aa609ea11e793ae92361f002671&scope=${scope}`
         })
 
         viewModel.tiktokConnect = function() {
