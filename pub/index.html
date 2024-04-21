@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+    html,head,body { margin: 0; padding: 0; border: none; overflow: hidden; }
+    html { background: #111; color: #ddd; font-family: sans-serif; }
+    #message-list { width: 100vw; height: 100vh; overflow-y: auto; overflow-x: hidden; }
+    .list-item { padding: 13px 10px; }
+    .list-item.highlight { border: 2px solid magenta; }
+    .list-item:nth-child(even) { background: #222; }
+    .list-item.specialAttention { background: #001500; }
+    .list-item:nth-child(even):is(.specialAttention) { background: #002000; }
+    .list-item .username { font-weight: bold; margin: 0 0 5px 0; }
+    .list-item .reply-to {
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 100%;
+        font-size: 80%;
+    }
+    .list-item .reply-to,
+    .list-item .redeem-info {
+        color: #777;
+        padding: 0 0 5px 0;
+    }
+    .list-item .redeem-info {
+        display: inline-block;
+    }
+    .list-item .redeem-info img {
+        height: 20px;
+        vertical-align: middle;
+    }
+    .list-item .time {
+        float: right;
+        color: #aaa;
+        font-size: 85%;
+        font-weight: bold;
+    }
+    .list-item.announcement {
+        border-left: 5px solid white;
+    }
+    .list-item.announcement-GREEN {
+        border-left-color: green;
+    }
+    .list-item.announcement-BLUE {
+        border-left-color: blue;
+    }
+    .list-item.announcement-ORANGE {
+        border-left-color: orange;
+    }
+    .list-item.announcement-PURPLE {
+        border-left-color: purple;
+    }
+    .hasSticky .list-item.stickyEvent { position: sticky; top: 0;  }
+    .list-item.stickyEvent { box-shadow: 2px 2px black; background: #202020; }
+    .badges, .pronouns, .username { display: inline-block; }
+    .badges { vertical-align: middle; }
+    .badges img, .chat img { height: 18px; }
+    .chat.onlyEmotes .message-text img { height: 32px; }
+    .pronouns { border: 1px solid #555; border-radius: 5px; padding: 2px 6px; margin-left: 5px; font-size: 90%; }
+    .gift-text img, .info-message img { height: 26px; vertical-align: middle; }
+    .gift-text, .follow-text, .info-message, .subscribe-text, .announcement-data, .intro-message, .charity-text { display: inline; }
+    .subscribe-text, .announcement-data, .intro-message { color: #999; }
+    .gifter-badge,.team-badge {
+        border-radius: 5px;
+        font-size: 80%;
+        display: inline-block;
+        vertical-align: top;
+        padding: 2px 5px;
+        font-weight: bold;
+    }
+    .gifter-badge {
+        background: rgba(71, 126, 255, 0.7);
+    }
+    .team-badge {
+        background: rgba(215,81,57,.65);
+    }
+    .list-item .profile-image {
+        display: inline-block;
+        vertical-align: middle;
+        margin-right: 5px;
+    }
+
+    .list-item .profile-image img {
+        width: 25px;
+        height: 25px;
+        border-radius: 25px;
+    }
+</style>
+<div id="message-list" data-bind="css: {'hasSticky': stickyMessage() !== null}">
+    <div class="list-item stickyEvent">
+        <!-- ko if: stickyMessage -->
+        <!-- ko if: typeof stickyMessage().badges !== 'undefined' -->
+        <div class="badges">
+            <!-- ko foreach: stickyMessage().badges -->
+            <!-- ko if: typeof type === 'undefined' -->
+            <img src="data:image/png," data-bind="attr: { src: url, srcset: srcset, alt: alt }" />
+            <!-- /ko -->
+            <!-- /ko -->
+        </div>
+        <!-- /ko -->
+        <!-- ko if: typeof stickyMessage().username !== 'undefined' -->
+        <div class="username" data-bind="style: { color: (stickyMessage().userColor ? stickyMessage().userColor : false) }">
+            <!-- ko text: stickyMessage().displayName --><!-- /ko -->
+            <!-- ko if: stickyMessage().displayName.toLowerCase() !== stickyMessage().username.toLowerCase() -->
+            (<!-- ko text: stickyMessage().username --><!-- /ko -->)
+            <!-- /ko -->
+        </div>
+        <!-- /ko -->
+        <div class="info-message" data-bind="html: stickyMessage().info"></div>
+        <!-- /ko -->
+    </div>
+    <!-- ko foreach: { data: messages, afterRender: onMessageAdded } -->
+    <div data-bind="class: 'list-item ' + type, css: $root.getListItemClasses($data)">
+        <!-- ko if: typeof profileImage !== 'undefined' && profileImage -->
+        <div class="profile-image">
+            <img src="data:image/png," data-bind="attr:{src: profileImage}" alt="">
+        </div>
+        <!-- /ko -->
+        <div class="badges">
+            <!-- ko foreach: badges -->
+                <!-- ko if: typeof type === 'undefined' -->
+                    <img src="data:image/png," data-bind="attr: { src: url, srcset: srcset, alt: alt }" />
+                <!-- /ko -->
+                <!-- ko if: typeof type !== 'undefined' && type === 'gifterLevel' -->
+                    <span class="gifter-badge" data-bind="text: text"></span>
+                <!-- /ko -->
+                <!-- ko if: typeof type !== 'undefined' && type === 'teamLevel' -->
+                    <span class="team-badge" data-bind="text: text"></span>
+                <!-- /ko -->
+            <!-- /ko -->
+        </div>
+        <div class="username" data-bind="style: { color: (userColor ? userColor : false) }">
+            <!-- ko text: displayName --><!-- /ko -->
+            <!-- ko if: displayName.toLowerCase() !== username.toLowerCase() -->
+                (<!-- ko text: username --><!-- /ko -->)
+            <!-- /ko -->
+        </div>
+        <!-- ko if: typeof $root.pronouns()[pronounIdent] !== 'undefined' -->
+            <div class="pronouns" data-bind="text: $root.pronouns()[pronounIdent]"></div>
+        <!-- /ko -->
+        <!-- ko if: type === 'chat' || type === 'redeem' -->
+            <div class="time" data-bind="text: displayTime"></div>
+            <!-- ko if: typeof parentMessage !== 'undefined' && parentMessage !== null -->
+                <div class="reply-to">
+                Replying to @<!-- ko text: parentMessage.username --><!-- /ko -->: <!-- ko text: parentMessage.message --><!-- /ko -->
+                </div>
+            <!-- /ko -->
+            <!-- ko if: type === 'redeem' -->
+                <div class="redeem-info">
+                    redeemed <span data-bind="text: rewardTitle"></span>
+                    <img src="https://static-cdn.jtvnw.net/channel-points-icons/38838929/a6284cb1-1db3-4840-acf8-a012d224db40/icon-1.png" alt="">
+                    <span data-bind="text: rewardCost"></span>
+                </div>
+            <!-- /ko -->
+            <!-- ko if: typeof isAnnouncement !== 'undefined' && isAnnouncement -->
+                <div class="announcement-data">made an announcement</div>
+            <!-- /ko -->
+            <!-- ko if: type === 'chat' && userIntro -->
+                <div class="intro-message">introduced themselves</div>
+            <!-- /ko -->
+            <div class="message-text" data-bind="html: messageText"></div>
+        <!-- /ko -->
+        <!-- ko if: type === 'gift' -->
+        <div class="gift-text">
+            gifted <span data-bind="text: giftName"></span>
+            <img alt="" src="data:image/png," data-bind="attr: {src: giftImage}">
+            x<span data-bind="text: giftAmount"></span>
+            (<span data-bind="text: diamondCount"></span>)
+        </div>
+        <!-- /ko -->
+        <!-- ko if: type === 'gift_sub_summary' -->
+        <div class="gift-text">
+            gifted <span data-bind="text: amount"></span>
+            Tier <span data-bind="text: tier"></span> subscriptions!<br>
+            They have gifted <span data-bind="text: total"></span> subscriptions total.
+        </div>
+        <!-- /ko -->
+        <!-- ko if: type === 'gift_sub' -->
+        <div class="gift-text">
+            received a Tier <span data-bind="text: tier"></span> subscription from
+            <!-- ko text: fromDisplayName --><!-- /ko -->
+            <!-- ko if: fromDisplayName.toLowerCase() !== fromName.toLowerCase() -->
+            (<!-- ko text: fromName --><!-- /ko -->)
+            <!-- /ko -->
+        </div>
+        <!-- /ko -->
+        <!-- ko if: type === 'charity' -->
+        <div class="charity-text">
+            donated <span data-bind="text: $root.formatPrice(amount)"></span> to <span data-bind="text: charity"></span>
+        </div>
+        <!-- /ko -->
+        <!-- ko if: type === 'follow' -->
+        <div class="follow-text">
+            followed!
+        </div>
+        <!-- /ko -->
+        <!-- ko if: type === 'subscribe' -->
+        <div class="subscribe-text">
+            <!-- ko if: typeof tier !== 'undefined' -->
+            subscribed at Tier <span data-bind="text: tier"></span>.
+            Months: <span data-bind="text: months"></span>,
+            Streak: <span data-bind="text:streak"></span>
+            <!-- /ko -->
+            <!-- ko if: typeof tier === 'undefined' -->
+            subscribed!
+            <!-- /ko -->
+        </div>
+        <div class="message-text" data-bind="html: messageText"></div>
+        <!-- /ko -->
+    </div>
+    <!-- /ko -->
+</div>
+<script type="text/javascript" src="bower_components/knockout/dist/knockout.js"></script>
+<script type="text/javascript" src="bower_components/socket.io/client-dist/socket.io.min.js"></script>
+<script>
+    function generateDisplayTime(timeInMillis) {
+        let temporaryDate = new Date(0);
+        temporaryDate.setUTCMilliseconds(timeInMillis);
+
+        let minutes = temporaryDate.getMinutes();
+        if (minutes < 10) { minutes = '0' + minutes; }
+        let seconds = temporaryDate.getSeconds();
+        if (seconds < 10) { seconds = '0' + seconds; }
+
+        return `${temporaryDate.getHours()}:${minutes}:${seconds}`
+    }
+    function MessageListViewModel() {
+        const viewModel = this;
+        viewModel.messages = ko.observableArray([]);
+        viewModel.pronouns = ko.observable({});
+        viewModel.stickyMessage = ko.observable(null);
+        viewModel.atBottom = true;
+        viewModel.pauseScrollCalculation = false;
+        viewModel.messageListDOM = document.getElementById('message-list');
+        viewModel.stickyTimeout = null;
+        viewModel.formatPrice= (amount) => {
+            // Assumes keys: value and currency
+            const priceFormat = new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: amount.currency
+            })
+
+            return priceFormat.format(amount.value / Math.pow(10, amount.decimalPlaces))
+        }
+
+        viewModel.isSpecialAttention = function(message) {
+            return message.type === 'gift'
+                || message.type === 'gift_sub_summary'
+                || message.type === 'gift_sub'
+                || message.type === 'subscribe'
+                || message.type === 'charity'
+                || message.hasGift;
+        };
+        viewModel.getListItemClasses = function(message) {
+            // {'onlyEmotes': onlyEmotes, 'specialAttention': $root.isSpecialAttention($data), 'highlight': (typeof highlight !== 'undefined' && highlight) }
+            const classes = {
+                'onlyEmotes': message.onlyEmotes,
+                'specialAttention': viewModel.isSpecialAttention(message),
+                'highlight': typeof message.highlight !== 'undefined' && message.highlight,
+                'announcement': message.isAnnouncement,
+            }
+            if (message.isAnnouncement) {
+                classes['announcement-' + message.announcementColor] = true;
+            }
+            return classes;
+        }
+        viewModel.addMessage = function(data) {
+            // Set some stuff defaults so we don't have to everywhere
+            if (typeof data.userColor === 'undefined') {
+                data.userColor = null;
+            }
+            if (typeof data.pronounIdent === 'undefined') {
+                data.pronounIdent = null;
+            }
+            if (typeof data.messageText === 'undefined') {
+                data.messageText = null;
+            }
+            if (typeof data.onlyEmotes === 'undefined') {
+                data.onlyEmotes = false;
+            }
+
+            // Add
+            viewModel.messages.push(data);
+            if (viewModel.messages().length > 500) {
+                viewModel.messages.shift();
+            }
+        }
+        viewModel.addDisappearingStickyMessage = function(data) {
+            if (viewModel.stickyTimeout !== null) {
+                clearTimeout(viewModel.stickyTimeout);
+            }
+            viewModel.stickyMessage(data);
+            setTimeout(() => { viewModel.stickyMessage(null) }, 30000);
+        }
+
+        viewModel.onMessageAdded = function() {
+            if (!viewModel.atBottom) return;
+            viewModel.messageListDOM.scrollTop = viewModel.messageListDOM.scrollHeight;
+        }
+        viewModel.stickyMessage.subscribe(viewModel.onMessageAdded);
+
+        viewModel.initialize = function() {
+            viewModel.socket = io();
+
+            viewModel.socket.on('connect', () => {
+                viewModel.messages([]);
+                viewModel.socket.emit('requestBacklog');
+            });
+            viewModel.socket.on('disconnect', () => { console.warn('Socket disconnected'); });
+            viewModel.socket.on('pronouns', (data) => {
+                let pronouns = viewModel.pronouns();
+                pronouns[data.identifier] = data.pronouns;
+                viewModel.pronouns(pronouns);
+            });
+            viewModel.socket.on('chat', (data) => {
+                // Create service badges
+                let badges = [];
+                let pronounIdent = data.source + '_' + data.username;
+                if (data.source === 'twitch') {
+                    badges.push({
+                        url: 'img/twitch-32.png',
+                        srcset: 'img/twitch-16.png 16w, img/twitch-32.png 32w',
+                        alt: 'Twitch'
+                    });
+                    for (let badgeIncrement in data.badges) {
+                        badges.push({
+                            url: data.badges[badgeIncrement].image,
+                            srcset: false,
+                            alt: ''
+                        });
+                    }
+                }
+                if (data.source === 'tiktok') {
+                    badges.push({
+                        url: 'img/tiktok.png',
+                        srcset: false,
+                        alt: 'TikTok'
+                    });
+                    switch(true) {
+                        case (data.broadcaster):
+                            badges.push({url: 'img/twitch-broadcast.png', alt: 'Broadcaster', srcset: false});
+                            break;
+                        case (data.mod):
+                            badges.push({url: 'img/twitch-mod.png', alt: 'Mod', srcset: false});
+                            break;
+                        case (data.vip):
+                            badges.push({url: 'img/twitch-vip.png', alt: 'VIP', srcset: false});
+                            break;
+                    }
+                    for (let badgeIncrement in data.badges) {
+                        badges.push({
+                            type: data.badges[badgeIncrement].type,
+                            text: data.badges[badgeIncrement].text,
+                            url: data.badges[badgeIncrement].image,
+                            srcset: false,
+                            alt: ''
+                        });
+                    }
+                }
+                if (data.source === 'youtube') {
+                    badges.push({
+                        url: 'img/youtube.png',
+                        srcset: false,
+                        alt: 'YouTube'
+                    })
+                    switch(true) {
+                        case (data.broadcaster):
+                            badges.push({url: 'img/twitch-broadcast.png', alt: 'Broadcaster', srcset: false});
+                            break;
+                        case (data.mod):
+                            badges.push({url: 'img/twitch-mod.png', alt: 'Mod', srcset: false});
+                            break;
+                        case (data.vip):
+                            badges.push({url: 'img/twitch-vip.png', alt: 'VIP', srcset: false});
+                            break;
+                    }
+                }
+
+                let onlyEmotes = false;
+                let testDiv = document.createElement('div');
+                testDiv.innerHTML = data.messageText;
+                if (testDiv.innerText.replaceAll(' ','').length === 0) {
+                    onlyEmotes = true;
+                }
+
+                viewModel.addMessage({
+                    type: 'chat',
+                    badges: badges,
+                    displayName: data.displayName,
+                    username: data.username,
+                    messageText: data.messageText,
+                    userColor: data.userColor,
+                    pronounIdent: pronounIdent,
+                    parentMessage: typeof data.parentMessage !== 'undefined' ? data.parentMessage : null,
+                    onlyEmotes: onlyEmotes,
+                    highlight: data.highlight,
+                    displayTime: `${generateDisplayTime(data.timeInMillis)}`,
+                    isAnnouncement: data.isAnnouncement,
+                    announcementColor: data.announcementColor,
+                    hasGift: data.hasGift,
+                    userIntro: data.userIntro,
+                    profileImage: data.profileImage,
+                });
+            });
+            viewModel.socket.on('redeem', (data) => {
+                // only twitch atm
+                let badges = [];
+                let pronounIdent = data.source + '_' + data.username;
+                if (data.source === 'twitch') {
+                    badges.push({
+                        url: 'img/twitch-32.png',
+                        srcset: 'img/twitch-16.png 16w, img/twitch-32.png 32w',
+                        alt: 'Twitch'
+                    });
+                    for (let badgeIncrement in data.badges) {
+                        badges.push({
+                            url: data.badges[badgeIncrement].image,
+                            srcset: false,
+                            alt: ''
+                        });
+                    }
+                }
+
+                viewModel.addMessage({
+                    type: 'redeem',
+                    badges: badges,
+                    displayName: data.displayName,
+                    username: data.username,
+                    messageText: data.messageText,
+                    userColor: data.userColor,
+                    pronounIdent: pronounIdent,
+                    rewardTitle: data.rewardTitle,
+                    rewardCost: data.rewardCost,
+                    displayTime: `${generateDisplayTime(data.timeInMillis)}`,
+                });
+            });
+            viewModel.socket.on('gift', (data) => {
+                viewModel.addMessage({
+                    type: 'gift',
+                    badges: [{
+                        url: 'img/tiktok.png',
+                        srcset: false,
+                        alt: 'TikTok'
+                    }],
+                    displayName: data.displayName,
+                    username: data.username,
+                    giftName: data.giftName,
+                    giftAmount: data.giftAmount,
+                    giftImage: data.giftImage,
+                    diamondCount: data.diamondCount
+                });
+            });
+            viewModel.gotFollow = (data) => {
+                let badges = [];
+                if (data.source === 'twitch') {
+                    badges.push({
+                        url: 'img/twitch-32.png',
+                        srcset: 'img/twitch-16.png 16w, img/twitch-32.png 32w',
+                        alt: 'Twitch'
+                    });
+                }
+                if (data.source === 'tiktok') {
+                    badges.push({
+                        url: 'img/tiktok.png',
+                        srcset: false,
+                        alt: 'TikTok'
+                    })
+                }
+
+                viewModel.addMessage({
+                    type: 'follow',
+                    badges: badges,
+                    displayName: data.displayName,
+                    username: data.username,
+                });
+            }
+            viewModel.socket.on('follow', viewModel.gotFollow);
+            viewModel.gotSubscribe = (data) => {
+                let badges = [];
+                if (data.source === 'twitch') {
+                    badges.push({
+                        url: 'img/twitch-32.png',
+                        srcset: 'img/twitch-16.png 16w, img/twitch-32.png 32w',
+                        alt: 'Twitch'
+                    });
+                }
+                if (data.source === 'tiktok') {
+                    badges.push({
+                        url: 'img/tiktok.png',
+                        srcset: false,
+                        alt: 'TikTok'
+                    })
+                }
+
+                viewModel.addMessage({
+                    type: 'subscribe',
+                    badges: badges,
+                    displayName: data.displayName,
+                    username: data.username,
+                    userColor: data.userColor,
+                    tier: data.tier,
+                    months: data.months,
+                    streak: data.streak,
+                    messageText: data.messageText
+                });
+            };
+            viewModel.socket.on('subscribe', viewModel.gotSubscribe);
+            viewModel.gotCommunityGift = (data) => {
+                const badges = [];
+                if (data.source === 'twitch') {
+                    badges.push({
+                        url: 'img/twitch-32.png',
+                        srcset: 'img/twitch-16.png 16w, img/twitch-32.png 32w',
+                        alt: 'Twitch'
+                    });
+                }
+
+                viewModel.addMessage({
+                    type: 'gift_sub_summary',
+                    badges: badges,
+                    displayName: data.displayName,
+                    username: data.username,
+                    userColor: data.userColor,
+                    amount: data.amount,
+                    tier: data.tier,
+                    total: data.totalGifts,
+                })
+            }
+            viewModel.socket.on('community_gift', viewModel.gotCommunityGift)
+            viewModel.receivedCommunityGift = (data) => {
+                const badges = [];
+                if (data.source === 'twitch') {
+                    badges.push({
+                        url: 'img/twitch-32.png',
+                        srcset: 'img/twitch-16.png 16w, img/twitch-32.png 32w',
+                        alt: 'Twitch'
+                    });
+                }
+
+                viewModel.addMessage({
+                    type: 'gift_sub',
+                    badges: badges,
+                    displayName: data.recipientDisplayName,
+                    username: data.recipientUserName,
+                    amount: data.amount,
+                    tier: data.tier,
+                    fromDisplayName: data.displayName,
+                    fromName: data.username,
+                })
+            }
+            viewModel.socket.on('sub_gift', viewModel.receivedCommunityGift)
+            viewModel.onCharity = (data) => {
+                const badges = [];
+                if (data.source === 'twitch') {
+                    badges.push({
+                        url: 'img/twitch-32.png',
+                        srcset: 'img/twitch-16.png 16w, img/twitch-32.png 32w',
+                        alt: 'Twitch'
+                    });
+                }
+
+                viewModel.addMessage({
+                    type: 'charity',
+                    charity: data.charity,
+                    badges: badges,
+                    displayName: data.displayName,
+                    username: data.username,
+                    amount: data.amount,
+                })
+            }
+            viewModel.socket.on('charity', viewModel.onCharity)
+            viewModel.socket.on('like', (data) => {
+                viewModel.addDisappearingStickyMessage({
+                    type: 'react',
+                    reactType: 'like',
+                    badges: [{
+                        url: 'img/tiktok.png',
+                        srcset: false,
+                        alt: 'TikTok'
+                    }],
+                    displayName: data.displayName,
+                    username: data.username,
+                    info: 'liked the LIVE',
+                });
+            });
+            viewModel.socket.on('share', (data) => {
+                viewModel.addDisappearingStickyMessage({
+                    type: 'share',
+                    badges: [{
+                        url: 'img/tiktok.png',
+                        srcset: false,
+                        alt: 'TikTok'
+                    }],
+                    displayName: data.displayName,
+                    username: data.username,
+                    info: 'shared the LIVE',
+                });
+            });
+            viewModel.socket.on('needsTwitchAuth', () => {
+                viewModel.stickyMessage({
+                    type: 'info',
+                    info: 'Waiting for twitch authorization...'
+                });
+            });
+            viewModel.socket.on('twitchAuthorized', () => {
+                viewModel.addDisappearingStickyMessage({
+                    type: 'info',
+                    info: 'Twitch Successfully Authorized!  Have a nice stream!'
+                })
+            })
+
+            document.getElementById('message-list').addEventListener('mousewheel', (e) => {
+                viewModel.atBottom = viewModel.messageListDOM.scrollTop >= (viewModel.messageListDOM.scrollHeight - window.innerHeight);
+                console.log(viewModel.messageListDOM.scrollHeight, viewModel.messageListDOM.scrollTop);
+            });
+        }
+    }
+
+    const viewModel = new MessageListViewModel();
+    ko.applyBindings(viewModel);
+    viewModel.initialize();
+</script>

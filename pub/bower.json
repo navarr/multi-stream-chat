@@ -1,0 +1,22 @@
+{
+  "name": "multi-stream-chat",
+  "authors": [
+    "Navarr Barnier <me@navarr.me>"
+  ],
+  "description": "",
+  "main": "",
+  "license": "proprietary",
+  "homepage": "",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "knockout": "^3.5.1",
+    "socket.io": "4.7.5"
+  }
+}

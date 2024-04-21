@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<style>
+    html { background: #111; color: #ddd; font-family: sans-serif; }
+    .loading { display: none; }
+</style>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<div class="loading" data-bind="css: {loading: !hasLoaded}">
+    <fieldset title="Twitch">
+        <legend>Twitch</legend>
+        <!-- ko if: needsTwitchAuth -->
+        <a href="#" data-bind="attr:{href: viewModel.twitchConnectUrl()}">Authorize Twitch</a>
+        <!-- /ko -->
+        <!-- ko ifnot: needsTwitchAuth -->
+        <span>Either twitch is authorized or we can't connect to the backend</span>
+        <!-- /ko -->
+    </fieldset>
+    <br />
+    <fieldset title="TikTok">
+        <legend>TikTok</legend>
+        <input data-bind="value: tiktokUsername" placeholder="Username"><button data-bind="click: tiktokConnect">Connect TikTok (must already be LIVE)</button>
+    </fieldset>
+    <br />
+    <fieldset title="YouTube">
+        <legend>YouTube</legend>
+        <input data-bind="value: youtubeVideoId" placeholder="Video ID"><button data-bind="click: youtubeConnect">Connect YouTube</button>
+    </fieldset>
+    <p>Server Messages:</p>
+    <ul data-bind="foreach: messages">
+        <li data-bind="text: message"></li>
+    </ul>
+</div>
+<script type="text/javascript" src="bower_components/knockout/dist/knockout.js"></script>
+<script type="text/javascript" src="bower_components/socket.io/client-dist/socket.io.min.js"></script>
+<script>
+    function AdminAppViewModel() {
+        const viewModel = this;
+        viewModel.hasLoaded = true;
+        viewModel.needsTwitchAuth = ko.observable(false);
+        viewModel.youtubeVideoId = ko.observable('');
+        viewModel.messages = ko.observableArray([]);
+        viewModel.tiktokUsername = ko.observable('')
+        viewModel.twitchClientId = ko.observable('')
+        viewModel.twitchRedirectUri = ko.observable('')
+        viewModel.initialize = function() {
+            viewModel.socket = io();
+            viewModel.socket.on('connect', () => { viewModel.socket.emit('admin'); })
+            viewModel.socket.on('disconnect', () => { console.warn('Socket disconnected') })
+            viewModel.socket.on('needsTwitchAuth', (data) => {
+                viewModel.twitchClientId(data.clientId)
+                viewModel.twitchRedirectUri(data.redirectUri)
+                viewModel.needsTwitchAuth(true)
+            })
+            viewModel.socket.on('twitchAuthorized', () => { viewModel.needsTwitchAuth(false) })
+            viewModel.socket.on('log', (data) => { viewModel.messages.push(data.message) })
+        }
+        viewModel.twitchConnectUrl = ko.pureComputed(() => {
+            const clientId = encodeURIComponent(viewModel.twitchClientId()),
+                redirectUri = encodeURIComponent(viewModel.twitchRedirectUri())
+            return `https://id.twitch.tv/oauth2/authorize?response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}&state=c3ab8aa609ea11e793ae92361f002671&scope=chat%3Aread%20user%3Aread%3Achat%20moderator%3Aread%3Afollowers%20channel%3Aread%3Asubscriptions%20channel%3Aread%3Aredemptions%20channel%3Amanage%3Aredemptions%20moderator:manage:automod%20bits:read`
+        })
+
+        viewModel.tiktokConnect = function() {
+            viewModel.socket.emit('reconnectTikTok', {username: viewModel.tiktokUsername()});
+        }
+
+        viewModel.youtubeConnect = function() {
+            viewModel.socket.emit('youtubeConnect', {videoId: viewModel.youtubeVideoId()})
+        }
+    }
+
+    const viewModel = new AdminAppViewModel();
+    ko.applyBindings(viewModel);
+    viewModel.initialize();
+</script>

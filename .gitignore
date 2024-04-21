@@ -1,0 +1,4 @@
+.env
+node_modules/
+pub/bower_components/
+*:Zone.Identifier
