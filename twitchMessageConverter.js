@@ -6,7 +6,6 @@
 class TwitchMessageConverter {
     constructor(channelId, apiClient) {
         this.bttvEmotes = {};
-        this.cheerMotes = {};
         this.channelId = channelId;
         this.apiClient = apiClient;
         this.cheermoteList = null;
@@ -32,14 +31,18 @@ class TwitchMessageConverter {
     }
 
     convertBitsMessage(rawMessage) {
-        const cheerNames = this.cheermoteList.getPossibleNames()
+        const cheerNames = this.cheermoteList.getPossibleNames().sort((a,b) => {
+            // Sort by string length for when a name contains another possible name
+            if (a.length > b.length) return -1;
+            if (b.length > a.length) return 1;
+            return 0
+        })
         let convertedMessage = rawMessage
         for(let cheermoteIndex in cheerNames) {
             let name = cheerNames[cheermoteIndex],
                 pattern = `${name}(\\d+)`
-            convertedMessage = convertedMessage.replaceAll(new RegExp(pattern, 'g'), (match, num) => {
+            convertedMessage = convertedMessage.replaceAll(new RegExp(pattern, 'gi'), (match, num) => {
                 const displayInfo = this.cheermoteList.getCheermoteDisplayInfo(name, num, {background: 'dark', state: 'animated', scale: '2'})
-                console.debug('Cheer Found in message', name, num, displayInfo)
                 return `<img src="${displayInfo.url}" alt=${name}"><span style="font-weight:bold;color:${displayInfo.color}">${num}</span>`
             })
         }
