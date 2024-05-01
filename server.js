@@ -10,6 +10,7 @@ const {RefreshingAuthProvider, exchangeCode} = require('@twurple/auth');
 const {ApiClient} = require("@twurple/api");
 const {EventSubWsListener} = require("@twurple/eventsub-ws");
 const {YoutubeMessageProcessor} = require('./youtubeMessageProcessor')
+const WebSocketClient = require('websocket').client;
 
 let twitchIsAuthorized = false;
 
@@ -255,8 +256,33 @@ function initializeTikTok(TIKTOK_CHANNEL) {
     initializeTiktokListeners(tikTok)
     tikTok.connect()
 }
+
+let titsConnection;
 function initializeTiktokListeners(tikTok) {
+    // Initialize TITS
+    try {
+        const titsClient = new WebSocketClient();
+        titsClient.on('connect', (connection) => {
+            console.log('Connected')
+            titsConnection = connection;
+        })
+        console.log('Attempting TITS Connection', process.env.TITS)
+        titsClient.connect(process.env.TITS_URL)
+    } catch (e) {
+        console.warn(e)
+    }
     tikTok.connection.on('gift', data => {
+        let giftSend = {
+            "apiName":"TITSPublicApi",
+            "apiVersion":"1.0",
+            "requestID":"someID",
+            "messageType":"TITSThrowItemsRequest",
+            "data": {
+                "delayTime": 0.05,
+                "errorOnMissingID": false
+            }
+        }
+
         if (data.giftType !== 1 || data.repeatEnd) {
             // diamondCount is for one of the gifts in the sequence, not the totality
             let diamondCount = data.diamondCount * data.repeatCount;
@@ -269,6 +295,22 @@ function initializeTiktokListeners(tikTok) {
                 giftAmount: data.repeatCount,
                 giftImage: data.giftPictureUrl,
             });
+            if (data.giftName === 'Heart Me') {
+                giftSend.data.amountOfThrows = 10
+                giftSend.data.items = [process.env.HEART_ME_ITEM]
+                titsConnection.sendUTF(JSON.stringify(giftSend))
+            }
+        } else if (data.giftName === 'Rose') {
+            try {
+                if (data.giftName === 'Rose') {
+                    giftSend.data.amountOfThrows = 1
+                    giftSend.data.items = [process.env.ROSE_ITEM]
+                    titsConnection.sendUTF(JSON.stringify(giftSend))
+                }
+
+            } catch(e) {
+                console.warn(e)
+            }
         }
     })
 
