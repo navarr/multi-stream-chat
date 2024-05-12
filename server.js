@@ -10,7 +10,7 @@ const {RefreshingAuthProvider, exchangeCode} = require('@twurple/auth');
 const {ApiClient} = require("@twurple/api");
 const {EventSubWsListener} = require("@twurple/eventsub-ws");
 const {YoutubeMessageProcessor} = require('./youtubeMessageProcessor')
-const WebSocketClient = require('websocket').client;
+const {TITSConnectionWrapper} = require('./titsConnectionWrapper')
 
 let twitchIsAuthorized = false;
 
@@ -34,6 +34,8 @@ const twitchAuthProvider = new RefreshingAuthProvider({clientId: twitchClientId,
 const twitchApiClient = new ApiClient({authProvider: twitchAuthProvider});
 
 const youtubeMessageConverter = new YoutubeMessageProcessor()
+
+const titsConnection = new TITSConnectionWrapper(process.env.TITS_URL);
 
 const twitchBadges = {};
 
@@ -257,20 +259,7 @@ function initializeTikTok(TIKTOK_CHANNEL) {
     tikTok.connect()
 }
 
-let titsConnection;
 function initializeTiktokListeners(tikTok) {
-    // Initialize TITS
-    try {
-        const titsClient = new WebSocketClient();
-        titsClient.on('connect', (connection) => {
-            console.log('Connected')
-            titsConnection = connection;
-        })
-        console.log('Attempting TITS Connection', process.env.TITS)
-        titsClient.connect(process.env.TITS_URL)
-    } catch (e) {
-        console.warn(e)
-    }
     tikTok.connection.on('gift', data => {
         let giftSend = {
             "apiName":"TITSPublicApi",
@@ -298,14 +287,14 @@ function initializeTiktokListeners(tikTok) {
             if (data.giftName === 'Heart Me') {
                 giftSend.data.amountOfThrows = 10
                 giftSend.data.items = [process.env.HEART_ME_ITEM]
-                titsConnection.sendUTF(JSON.stringify(giftSend))
+                titsConnection.send(JSON.stringify(giftSend))
             }
         } else if (data.giftName === 'Rose') {
             try {
                 if (data.giftName === 'Rose') {
                     giftSend.data.amountOfThrows = 1
                     giftSend.data.items = [process.env.ROSE_ITEM]
-                    titsConnection.sendUTF(JSON.stringify(giftSend))
+                    titsConnection.send(JSON.stringify(giftSend))
                 }
 
             } catch(e) {
