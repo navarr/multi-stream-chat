@@ -261,17 +261,6 @@ function initializeTikTok(TIKTOK_CHANNEL) {
 
 function initializeTiktokListeners(tikTok) {
     tikTok.connection.on('gift', data => {
-        let giftSend = {
-            "apiName":"TITSPublicApi",
-            "apiVersion":"1.0",
-            "requestID":"someID",
-            "messageType":"TITSThrowItemsRequest",
-            "data": {
-                "delayTime": 0.05,
-                "errorOnMissingID": false
-            }
-        }
-
         if (data.giftType !== 1 || data.repeatEnd) {
             // diamondCount is for one of the gifts in the sequence, not the totality
             let diamondCount = data.diamondCount * data.repeatCount;
@@ -285,18 +274,11 @@ function initializeTiktokListeners(tikTok) {
                 giftImage: data.giftPictureUrl,
             });
             if (data.giftName === 'Heart Me') {
-                giftSend.data.amountOfThrows = 10
-                giftSend.data.items = [process.env.HEART_ME_ITEM]
-                titsConnection.send(JSON.stringify(giftSend))
+                titsConnection.throwItem(process.env.HEART_ME_ITEM, 10);
             }
         } else if (data.giftName === 'Rose') {
             try {
-                if (data.giftName === 'Rose') {
-                    giftSend.data.amountOfThrows = 1
-                    giftSend.data.items = [process.env.ROSE_ITEM]
-                    titsConnection.send(JSON.stringify(giftSend))
-                }
-
+                titsConnection.throwItem(process.env.ROSE_ITEM, 1);
             } catch(e) {
                 console.warn(e)
             }
