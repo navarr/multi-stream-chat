@@ -1,23 +1,41 @@
 const WebSocket = require('ws');
 
 class TITSConnectionWrapper {
+    socket
+    connectionAttemptsOneMinute = 0
+    connectionAttemptsResetTimeout
+
     constructor(path) {
         this.connect(path);
     }
 
     connect(path) {
-        console.debug('Attempting connection to websocket', path);
+        console.debug('Attempting connection to Twitch Integrated Throwing System', path);
         if (this.socket) {
             this.socket.close();
         }
         this.socket = new WebSocket(path);
         this.socket.addEventListener("open", (e) => {
-            console.debug('Connected to Websocket');
+            console.debug('Connected to TITS');
         });
         this.socket.addEventListener("error", (e) => {
-            console.warn('Websocket closed.  Attempting to re-open');
-            this.connect(path);
+            console.warn('TITS Websocket closed.  Attempting to re-open');
+            ++this.connectionAttemptsOneMinute
+            if (this.connectionAttemptsOneMinute <= 5 && e.error.code !== 'ECONNREFUSED') {
+                console.error(e);
+                if (this.connectionAttemptsResetTimeout) clearInterval(this.connectionAttemptsResetTimeout)
+               this.connectionAttemptsResetTimeout = setTimeout(() => {
+                    this.connectionAttemptsOneMinute = 0
+                }, 1000 * 60);
+                this.connect(path);
+            } else {
+                setTimeout(() => this.connect(path), 1000 * 60 * 5)
+            }
         })
+    }
+
+    forceConnect() {
+
     }
 
     message(data) {
@@ -35,6 +53,10 @@ class TITSConnectionWrapper {
     }
 
     throwItems(itemIds, amount) {
+        // VNyan
+        this.message(itemIds + " " + amount);
+        return;
+        // temporarily removed - TITS
         const message = {
             "apiName":"TITSPublicApi",
             "apiVersion":"1.0",

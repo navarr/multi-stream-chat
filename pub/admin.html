@@ -51,7 +51,7 @@
                 viewModel.needsTwitchAuth(true)
             })
             viewModel.socket.on('twitchAuthorized', () => { viewModel.needsTwitchAuth(false) })
-            viewModel.socket.on('log', (data) => { viewModel.messages.push(data.message) })
+            viewModel.socket.on('log', (data) => { viewModel.messages.push(data) })
         }
         viewModel.twitchConnectUrl = ko.pureComputed(() => {
             const clientId = encodeURIComponent(viewModel.twitchClientId()),
@@ -71,10 +71,14 @@
 
         viewModel.tiktokConnect = function() {
             viewModel.socket.emit('reconnectTikTok', {username: viewModel.tiktokUsername()});
+            viewModel.messages.push({message: 'Requesting connection to TikTok ' + viewModel.tiktokUsername()});
+            viewModel.tiktokUsername('');
         }
 
         viewModel.youtubeConnect = function() {
-            viewModel.socket.emit('youtubeConnect', {videoId: viewModel.youtubeVideoId()})
+            viewModel.socket.emit('youtubeConnect', {videoId: viewModel.youtubeVideoId()});
+            viewModel.messages.push({message: 'Requesting connection to YouTube video(s) ' + viewModel.youtubeVideoId()});
+            viewModel.youtubeVideoId('');
         }
     }
 

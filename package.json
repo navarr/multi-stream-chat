@@ -7,6 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
+    "@tiktoklive/types": "^1.0.6",
     "@twurple/api": "^7.1.0",
     "@twurple/auth": "^7.1.0",
     "@twurple/eventsub-ws": "^7.1.0",
@@ -16,9 +17,12 @@
     "instagram-graph-api": "^6.1.0",
     "node-fetch": "^3.3.2",
     "socket.io": "4.7.5",
-    "tiktok-live-connector": "^1.1.7",
+    "tiktok-live-connector": "^1.1.9",
     "websocket": "^1.0.34",
     "ws": "^8.17.0"
   },
-  "private": true
+  "private": true,
+  "devDependencies": {
+    "tsx": "^4.19.1"
+  }
 }

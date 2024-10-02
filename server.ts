@@ -1,9 +1,10 @@
+import {IncomingMessage} from "http";
+
 require('dotenv').config();
 
 const express = require('express');
 const {createServer} = require('http');
 const {Server} = require('socket.io');
-const {TikTokConnectionWrapper} = require('./tiktokConnectionWrapper');
 const {PronounDatabase} = require('./pronounDatabase');
 const {TwitchMessageConverter} = require('./twitchMessageConverter');
 const {RefreshingAuthProvider, exchangeCode} = require('@twurple/auth');
@@ -11,6 +12,9 @@ const {ApiClient} = require("@twurple/api");
 const {EventSubWsListener} = require("@twurple/eventsub-ws");
 const {YoutubeMessageProcessor} = require('./youtubeMessageProcessor')
 const {TITSConnectionWrapper} = require('./titsConnectionWrapper')
+const bodyParser = require('body-parser');
+import {FollowEvent, LikeEvent, ShareEvent, SubscribeEvent, CommentEvent, GiftEvent} from "@tiktoklive/types";
+import {EulerConnectionWrapper} from "./eulerConnectionWrapper";
 
 let twitchIsAuthorized = false;
 
@@ -35,7 +39,7 @@ const twitchApiClient = new ApiClient({authProvider: twitchAuthProvider});
 
 const youtubeMessageConverter = new YoutubeMessageProcessor()
 
-const titsConnection = new TITSConnectionWrapper(process.env.TITS_URL);
+const titsConnection = new TITSConnectionWrapper(process.env.VNYAN_URL);
 
 const twitchBadges = {};
 
@@ -66,6 +70,8 @@ function getTwitchPronouns(username) {
 }
 
 function initializePostTwitchAuthorization(TWITCH_CHANNEL_ID) {
+    io.sockets.emit('log', {message: `Twitch is now authorized for ${TWITCH_CHANNEL_ID}`});
+
     const twitchMessageConverter = new TwitchMessageConverter(TWITCH_CHANNEL_ID, twitchApiClient);
     async function loadBadges() {
         await loadGlobalTwitchBadges();
@@ -141,6 +147,7 @@ function initializePostTwitchAuthorization(TWITCH_CHANNEL_ID) {
             messageText: twitchMessageConverter.convertMessage(e.messageParts),
         };
         if (e.type === 'sub') {
+            console.log('Sub', e);
             io.sockets.emit('subscribe', Object.assign({}, basicData, {
                 tier: e.tier / 1000,
                 months: 1,
@@ -148,6 +155,7 @@ function initializePostTwitchAuthorization(TWITCH_CHANNEL_ID) {
                 isPrime: e.isPrime
             }));
         } else if (e.type === 'resub') {
+            console.log('Resub', e);
             io.sockets.emit('subscribe', Object.assign({}, basicData, {
                 tier: e.tier / 1000,
                 months: e.cumulativeMonths,
@@ -155,13 +163,15 @@ function initializePostTwitchAuthorization(TWITCH_CHANNEL_ID) {
                 isPrime: e.isPrime
             }));
         } else if (e.type === 'community_sub_gift') {
+            console.log('Community Sub Gift', e);
             io.sockets.emit('community_gift', Object.assign({}, basicData, {
                 tier: e.tier / 1000,
                 amount: e.amount,
                 totalGifts: e.cumulativeAmount
             }));
         } else if (e.type === 'sub_gift') {
-            io.sockets.emit('subscribe_gifted', Object.assign({}, basicData, {
+            console.log('Sub Gift', e);
+            io.sockets.emit('sub_gift', Object.assign({}, basicData, {
                 tier: e.tier / 1000,
                 months: 1,
                 streak: 1,
@@ -171,6 +181,7 @@ function initializePostTwitchAuthorization(TWITCH_CHANNEL_ID) {
                 recipientUserName: e.recipientName
             }));
         } else if (e.type === 'gift_paid_upgrade') {
+            console.log('Gift Paid Upgrade', e);
             io.sockets.emit('subscribe_upgrade', Object.assign({}, basicData, {
                 fromDisplayName: e.gifterDisplayName,
                 fromUserName: e.gifterName,
@@ -183,6 +194,7 @@ function initializePostTwitchAuthorization(TWITCH_CHANNEL_ID) {
                 isPrime: false
             }))
         } else if (e.type === 'prime_paid_upgrade') {
+            console.log('Prime Paid Upgrade', e);
             io.sockets.emit('subscribe_upgrade', Object.assign({}, basicData, {
                 from: 'prime',
             }));
@@ -193,6 +205,7 @@ function initializePostTwitchAuthorization(TWITCH_CHANNEL_ID) {
                 isPrime: false
             }))
         } else if (e.type === 'pay_it_forward') {
+            console.log('Pay it Forward', e);
         } else if (e.type === 'charity_donation') {
             io.sockets.emit('charity', Object.assign({}, basicData, {
                 charity: e.charityName,
@@ -211,7 +224,9 @@ function initializePostTwitchAuthorization(TWITCH_CHANNEL_ID) {
                 profileImage: '/twitchimage/' + e.chatterName,
             }));
         } else if (e.type === '') {
-
+            console.log('Blank type?', e);
+        } else {
+            console.log('Unhandled Event Type', e.type, e);
         }
     });
 
@@ -249,14 +264,227 @@ function initializePostTwitchAuthorization(TWITCH_CHANNEL_ID) {
 }
 
 // TikTok Events
+let tikTok;
+const eulerTiktoks = {};
 function initializeTikTok(TIKTOK_CHANNEL) {
-    const tiktokOptions = {enableExtendedGiftInfo: true}
-    if (process.env.TIKTOK_SESSION_ID) {
-        tiktokOptions['sessionId'] = process.env.TIKTOK_SESSION_ID
+    let eulerTiktok;
+    if (typeof eulerTiktoks[TIKTOK_CHANNEL] === 'undefined') {
+        eulerTiktok = new EulerConnectionWrapper(process.env.EULER_KEY, TIKTOK_CHANNEL);
+        eulerTiktoks[TIKTOK_CHANNEL] = eulerTiktok;
+        initializeTikTokThroughEuler(eulerTiktok, TIKTOK_CHANNEL);
     }
-    const tikTok = new TikTokConnectionWrapper(TIKTOK_CHANNEL, tiktokOptions);
-    initializeTiktokListeners(tikTok)
-    tikTok.connect()
+    eulerTiktok = eulerTiktoks[TIKTOK_CHANNEL];
+    eulerTiktok.connect();
+
+    return;
+    // const tiktokOptions = {
+    //     enableExtendedGiftInfo: true,
+    //     clientParams: {"app_language":"en-US","device_platform":"web"},
+    //     requestOptions:{timeout: 10000}
+    // }
+    // if (process.env.TIKTOK_SESSION_ID) {
+    //     tiktokOptions['sessionId'] = process.env.TIKTOK_SESSION_ID
+    // }
+    // if (process.env.TIKFINITY_URL) {
+    //     tikTok = new TikfinityConnectionWrapper(process.env.TIKFINITY_URL);
+    // } else {
+    //     tikTok = new TikTokConnectionWrapper(TIKTOK_CHANNEL, tiktokOptions, false, process.env.EULER_KEY);
+    // }
+    // initializeTiktokListeners(tikTok)
+    // tikTok.connect()
+}
+
+function initializeTikTokThroughEuler(eulerTiktok, channelName) {
+    function assembleBadges(user) {
+        const badges = [];
+        for (let badgeIncrement in user.badgeList) {
+            const badge = user.badgeList[badgeIncrement];
+            if (badge.displayType === 'BADGEDISPLAYTYPE_COMBINE') {
+                badges.push({
+                    type: 'wrappedImage',
+                    text: badge.combine.str ?? '',
+                    background: badge.combine.background,
+                    backgroundDark: badge.combine.backgroundDarkMode,
+                    image: badge.combine.icon.urlList[0]
+                })
+            }
+        }
+        return badges;
+    }
+
+    eulerTiktok.on('gift', (data: GiftEvent) => {
+        const giftName = data.gift.name.trim();
+        console.log("Gift Name: '" + giftName + "'");
+        if (data.repeatEnd || typeof data.groupId === 'undefined') { // no group, no combo
+            let diamondCount = data.gift.diamondCount * data.repeatCount;
+            io.sockets.emit('gift', {
+                source: 'tiktok',
+                displayName: data.user.nickname,
+                username: data.user.displayId,
+                diamondCount: diamondCount,
+                giftName: giftName,
+                giftAmount: data.repeatCount,
+                giftImage: data.gift.image.urlList[0],
+                badges: assembleBadges(data.user)
+            });
+        }
+        if (giftName === 'Heart Me') {
+            titsConnection.throwItem('heart', 10);
+            titsConnection.throwItem('headpat', 1);
+        } else if (giftName === 'Finger Heart' && data.repeatEnd) {
+            titsConnection.throwItem('headpat', 1);
+        } else if (giftName === 'Tiny Diny' && data.repeatEnd) {
+            titsConnection.throwItem('bonk', 1);
+        } else {
+            titsConnection.throwItem('coin', 1);
+        }
+    });
+
+    eulerTiktok.on('subscribe', (data: SubscribeEvent) => {
+        io.sockets.emit('subscribe', {
+            type: 'subscribe',
+            source: 'tiktok',
+            displayName: data.user.nickname,
+            username: data.user.displayId
+        });
+    });
+
+    eulerTiktok.on('like', (data: LikeEvent) => {
+        io.sockets.emit('like', {
+            type: 'react',
+            reactType: 'like',
+            source: 'tiktok',
+            displayName: data.user.nickname,
+            username: data.user.displayId
+        })
+    });
+
+    eulerTiktok.on('follow', (data: FollowEvent) => {
+        io.sockets.emit('follow', {
+            source: 'tiktok',
+            displayName: data.user.nickname,
+            username: data.user.displayId
+        })
+    })
+
+    eulerTiktok.on('share', (data: ShareEvent) => {
+        io.sockets.emit('share', {
+            source: 'tiktok',
+            displayName: data.user.nickname,
+            username: data.user.displayId
+        })
+    })
+
+    eulerTiktok.on('connect', () => {
+        io.sockets.emit('log', {message: `Connected to Euler TikTok service for ${channelName}`});
+    });
+
+    eulerTiktok.on('disconnect', () => {
+        io.sockets.emit('log', {message: `Disconnected from Euler Tiktok Service for ${channelName}`});
+    });
+
+    eulerTiktok.on('chat', (data: CommentEvent) => {
+        let comment = typeof data.content !== 'undefined' ? data.content : '';
+
+        let startLength = 0;
+        for (let emoteIndex in data.emotesList) {
+            const emote = data.emotesList[emoteIndex];
+            const imageString = `<img src="${emote.emote.image.urlList[0]}">`;
+            startLength += imageString.length;
+            comment = comment.substring(0, emote.index + startLength) + imageString + comment.substring(emote.index + startLength);
+        }
+
+        const badges = [];
+        let isMod = false;
+
+        /**
+         * Badges:
+         * - Moderator
+         * - Gift Level 23
+         * - Team Level II
+         * - FOXO (subscriber)
+         *
+         * Badge Data BADGEDISPLAYTYPE_TEXT { defaultPattern: 'Moderator' } undefined undefined
+         * Badge Data BADGEDISPLAYTYPE_IMAGE undefined { <-- Subscriber, but only the image?
+         *   image: {
+         *     urlList: [
+         *       'https://p16-webcast.tiktokcdn-us.com/webcast-oci-tx/sub_49e827679d0ab0fc7c3e0357e5d7d35be5c5d4d4b61f748810747aeaeed8703c~tplv-obj.image',
+         *       'https://p19-webcast.tiktokcdn-us.com/webcast-oci-tx/sub_49e827679d0ab0fc7c3e0357e5d7d35be5c5d4d4b61f748810747aeaeed8703c~tplv-obj.image'
+         *     ],
+         *     extras: 'webcast-oci-tx/sub_49e827679d0ab0fc7c3e0357e5d7d35be5c5d4d4b61f748810747aeaeed8703c'
+         *   }
+         * } undefined
+         * Badge Data BADGEDISPLAYTYPE_COMBINE undefined undefined { <-- GIFT LEVEL
+         *   icon: {
+         *     urlList: [
+         *       'https://p16-webcast.tiktokcdn.com/webcast-va/grade_badge_icon_lite_lv20_v1.png~tplv-obj.image',
+         *       'https://p19-webcast.tiktokcdn.com/webcast-va/grade_badge_icon_lite_lv20_v1.png~tplv-obj.image'
+         *     ],
+         *     extras: 'webcast-va/grade_badge_icon_lite_lv20_v1.png'
+         *   },
+         *   str: '23',
+         *   profileCardPanel: { projectionConfig: { icon: {} }, profileContent: {} },
+         *   background: { image: {}, backgroundColorCode: '#B3475AFF' },
+         *   backgroundDarkMode: { image: {}, backgroundColorCode: '#B3475AFF' },
+         *   publicScreenShowStyle: 14,
+         *   personalCardShowStyle: 15
+         * }
+         * Badge Data BADGEDISPLAYTYPE_COMBINE undefined undefined { <!-- Team Level heart
+         *   icon: {
+         *     urlList: [
+         *       'https://p16-webcast.tiktokcdn.com/webcast-va/fans_badge_icon_lv10_v0.png~tplv-obj.image',
+         *       'https://p19-webcast.tiktokcdn.com/webcast-va/fans_badge_icon_lv10_v0.png~tplv-obj.image'
+         *     ],
+         *     extras: 'webcast-va/fans_badge_icon_lv10_v0.png'
+         *   },
+         *   str: 'Ⅱ',
+         *   profileCardPanel: { projectionConfig: { icon: {} }, profileContent: {} },
+         *   background: { image: {}, backgroundColorCode: '#A6D75139' },
+         *   backgroundDarkMode: { image: {}, backgroundColorCode: '#A6D75139' },
+         *   publicScreenShowStyle: 14,
+         *   personalCardShowStyle: 15
+         * }
+         * Badge Data BADGEDISPLAYTYPE_COMBINE undefined undefined { <!-- Subscriber
+         *   icon: {
+         *     urlList: [
+         *       'https://p16-webcast.tiktokcdn-us.com/webcast-oci-tx/sub_49e827679d0ab0fc7c3e0357e5d7d35be5c5d4d4b61f748810747aeaeed8703c~tplv-obj.image',
+         *       'https://p19-webcast.tiktokcdn-us.com/webcast-oci-tx/sub_49e827679d0ab0fc7c3e0357e5d7d35be5c5d4d4b61f748810747aeaeed8703c~tplv-obj.image'
+         *     ],
+         *     extras: 'webcast-oci-tx/sub_49e827679d0ab0fc7c3e0357e5d7d35be5c5d4d4b61f748810747aeaeed8703c'
+         *   },
+         *   str: 'FOXO',
+         *   background: { image: {}, backgroundColorCode: '#99EF7300' },
+         *   publicScreenShowStyle: 14,
+         *   personalCardShowStyle: 14
+         * }
+         * Badge Data BADGEDISPLAYTYPE_COMBINE undefined undefined { <!-- Moderator
+         *   icon: {
+         *     urlList: [
+         *       'https://p16-webcast.tiktokcdn.com/webcast-va/moderater_badge_icon.png~tplv-obj.image',
+         *       'https://p19-webcast.tiktokcdn.com/webcast-va/moderater_badge_icon.png~tplv-obj.image'
+         *     ],
+         *     extras: 'webcast-va/moderater_badge_icon.png'
+         *   },
+         *   text: {},
+         *   background: { image: {}, backgroundColorCode: '#803F3F3F' },
+         *   backgroundDarkMode: { image: {}, backgroundColorCode: '#803F3F3F' },
+         *   iconAutoMirrored: true,
+         *   backgroundAutoMirrored: true,
+         *   publicScreenShowStyle: 12,
+         *   personalCardShowStyle: 14
+         * }
+         */
+
+        sendMessage({
+            type: 'chat',
+            badges: assembleBadges(data.user),
+            source: 'tiktok',
+            displayName: data.user.nickname,
+            username: data.user.displayId,
+            messageText: comment,
+            profileImage: data.user.avatarThumb.urlList[0]
+        })
+    })
 }
 
 function initializeTiktokListeners(tikTok) {
@@ -274,20 +502,17 @@ function initializeTiktokListeners(tikTok) {
                 giftImage: data.giftPictureUrl,
             });
             if (data.giftName === 'Heart Me') {
-                titsConnection.throwItem(process.env.HEART_ME_ITEM, 10);
+                titsConnection.throwItem("heart", 10);
             }
-        } else if (data.giftName === 'Rose') {
+        } else {
             try {
-                titsConnection.throwItem(process.env.ROSE_ITEM, 1);
+                //titsConnection.throwItem(process.env.ROSE_ITEM, 1);
+                titsConnection.throwItem("coin", 1);
             } catch(e) {
                 console.warn(e)
             }
         }
     })
-
-    tikTok.connection.on('rawData', (name, data) => {
-        // console.log(name, data);
-    });
 
     tikTok.connection.on('subscribe', data => {
         io.sockets.emit('subscribe', {
@@ -411,8 +636,10 @@ function initializeTiktokListeners(tikTok) {
     let tikTokConnectionAttempt = 1;
     tikTok.connection.on('connect', (e) => {
         tikTokConnectionAttempt = 0;
+        io.sockets.emit('log', {message: 'Connected to TikTok'});
     });
     tikTok.connection.on('disconnect', (e) => {
+        io.sockets.emit('log', {message: 'TikTok disconnected.'})
         if (tikTokConnectionAttempt > 5) {
             return;
         }
@@ -495,12 +722,15 @@ function sendMessage(messageData) {
  */
 
 const YOUTUBE_MIN_WAIT_TIME = process.env.YOUTUBE_API_WAIT_TIME;
-async function subscribeToYouTubeChat(liveChatId) {
+async function subscribeToYouTubeChat(liveChatId, videoId) {
+    io.sockets.emit('log', {message: `Starting to poll for messages for YT video ${videoId}`});
+
     // Get existing messages and begin polling
     let getResultAttempts = 0;
     async function getPageResult(pageToken) {
         if (getResultAttempts >= 10) {
             console.error(`Permanently Failed to get chat messages for ${liveChatId}`);
+            io.sockets.emit('log', {message: `No longer polling for new messages for YT video ${videoId}`});
             return;
         }
         ++getResultAttempts;
@@ -590,10 +820,11 @@ io.on('connection', (socket) => {
                 if (!lookupData.error) {
                     if (typeof lookupData.items !== 'undefined' && lookupData.items.length >= 1) {
                         const liveChatId = lookupData.items[0].liveStreamingDetails.activeLiveChatId;
-                        subscribeToYouTubeChat(liveChatId);
+                        subscribeToYouTubeChat(liveChatId, videoId);
                         try {
                             youtubeMessageConverter.instantiateBttvEmotes(lookupData.items[0].snippet.channelId)
                         } catch (e) {
+                            socket.emit('log', {message: `Unable to pull BTTV emotes for the requested channel, video ID: ${videoId}`})
                             console.error('Error loading BTTV Emotes for Channel', lookupData, e)
                         }
                     } else {
@@ -642,6 +873,79 @@ app.get('/twitchimage/:twitchUser', async (req, res) => {
         res.redirect(userInfo.profilePictureUrl);
     }
 });
+
+app.use(bodyParser.json());
+
+const tiltifyRewards = {
+    'fb636d07-97cd-4db1-87a9-0499666ca76e': 'Ask Me Anything',
+    '325f729b-d18c-4688-92a4-d1abe9e93cb6': 'Cat Cam Treat',
+    '2e5777d8-6893-45e7-b47b-8ef5253d484e': 'Handwritten Thank-you Note',
+    'b1d16cf1-4e1d-4c63-8be0-c5ea9f9ad7eb': 'Beanboozled Bean',
+    '5d65c469-abb8-493d-a4af-0140b4af3090': 'Nyavarr posts your tweet',
+    'fa5e470c-d487-48ab-bed9-3c910e721f30': 'Tier List'
+}
+
+const tiltifyPolls = {
+    'a540e5e2-020f-4f3f-823a-f5d165494310': {
+        name: 'What type of animal is Nyavarr?',
+        options: {
+            '2d43f8fc-6474-4557-9ced-572642b4fd60': 'A shape-shifting fox',
+            '082c0071-8152-4a90-9c05-d608fd7e7f94': 'A deer'
+        }
+    }
+}
+
+
+app.post('/tiltify', async (req: IncomingMessage, res) => {
+    if (req?.body?.meta?.event_type === 'public:direct:donation_updated' || req?.body?.meta?.event_type === 'private:direct:donation_updated') {
+        const charityEvent = req.body;
+        const tempDate = new Date(charityEvent.meta.generated_at);
+
+        const rewards = [];
+        let poll = null;
+
+        for(let claimIndex in charityEvent.data.reward_claims) {
+            const claim = charityEvent.data.reward_claims[claimIndex];
+            rewards.push({
+                name: tiltifyRewards[claim.reward_id] ?? 'Unknown Reward',
+                qty: claim.quantity,
+                answer: claim?.custom_question
+            });
+        }
+
+        if (charityEvent.data.poll_id) {
+            poll = {
+                question: tiltifyPolls[charityEvent.data.poll_id]?.name ?? 'Unknown Question',
+                answer: tiltifyPolls[charityEvent.data.poll_id]?.options[charityEvent.data.poll_option_id] ?? 'Unknown Answer'
+            }
+        }
+
+        io.sockets.emit('charity', {
+            source: 'tiltify',
+            charity: 'Tiltify',
+            displayName: charityEvent.data.donor_name,
+            username: charityEvent.data.donor_name,
+            amount: charityEvent.data.amount,
+            message: charityEvent.data.donor_comment,
+            timeInMillis: tempDate.getTime(),
+            rewards,
+            poll
+        });
+    }
+
+    if (req?.body?.meta?.event_type === 'public:direct:fact_updated') {
+        const charityEvent = req.body.data;
+
+        io.sockets.emit('charity_total', {
+            source: 'tiltify',
+            charity: 'Tiltify',
+            total: charityEvent.total_amount_raised
+        })
+    }
+
+    res.code = 204;
+    res.send();
+})
 app.use(express.static('pub'));
 
 const port = process.env.PORT || 8082;

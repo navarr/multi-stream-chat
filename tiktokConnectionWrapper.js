@@ -1,4 +1,4 @@
-const { WebcastPushConnection } = require('tiktok-live-connector');
+const { WebcastPushConnection, signatureProvider } = require('tiktok-live-connector');
 const { EventEmitter } = require('events');
 
 let globalConnectionCount = 0;
@@ -7,7 +7,7 @@ let globalConnectionCount = 0;
  * TikTok LIVE connection wrapper with advanced reconnect functionality and error handling
  */
 class TikTokConnectionWrapper extends EventEmitter {
-    constructor(uniqueId, options, enableLog) {
+    constructor(uniqueId, options, enableLog, apiKey) {
         super();
 
         this.uniqueId = uniqueId;
@@ -19,6 +19,8 @@ class TikTokConnectionWrapper extends EventEmitter {
         this.reconnectCount = 0;
         this.reconnectWaitMs = 1000;
         this.maxReconnectAttempts = 5;
+
+        signatureProvider.config.extraParams.apiKey = apiKey || '';
 
         this.connection = new WebcastPushConnection(uniqueId, options);
 

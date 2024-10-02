@@ -48,7 +48,7 @@ figured this out yet.
 
 ## Connecting
 
-Once you have Ngrok running (NGrok Step 4), you can run `node server.js` to start the application.
+Once you have Ngrok running (NGrok Step 4), you can run `node server.ts` to start the application.
 Then, proceed to `https://your-free-domain.ngrok-free.app/admin.html` to control the app, and 
 `https://your-free-domain.ngrok-free.app/` to view chat.  This can definitely be set as an OBS Panel source, and I 
 highly recommend you do so!
