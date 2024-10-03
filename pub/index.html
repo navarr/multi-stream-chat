@@ -57,6 +57,7 @@
     .badges { vertical-align: middle; }
     .badges img, .chat img { height: 18px; }
     .chat.onlyEmotes .message-text img { height: 32px; }
+    .chat .message-text.gigantifyEmotes img { height: 72px; }
     .pronouns { border: 1px solid #555; border-radius: 5px; padding: 2px 6px; margin-left: 5px; font-size: 90%; }
     .gift-text img, .info-message img { height: 26px; vertical-align: middle; }
     .gift-text, .follow-text, .info-message, .subscribe-text, .announcement-data, .intro-message, .charity-text { display: inline; }
@@ -210,7 +211,7 @@
             <!-- ko if: type === 'chat' && userIntro -->
                 <div class="intro-message">introduced themselves</div>
             <!-- /ko -->
-            <div class="message-text" data-bind="html: messageText, css: {'is-action' : isAction}"></div>
+            <div class="message-text" data-bind="html: messageText, css: {'is-action' : isAction, 'gigantic-emotes': gigantifyEmotes}"></div>
         <!-- /ko -->
         <!-- ko if: type === 'gift' -->
         <div class="gift-text">
@@ -466,7 +467,8 @@
                     hasGift: data.hasGift,
                     userIntro: data.userIntro,
                     profileImage: data.profileImage,
-                    streamChat: data.streamChat
+                    streamChat: data.streamChat,
+                    gigantifyEmotes: data.gigantifyEmotes
                 });
             });
             viewModel.socket.on('redeem', (data) => {

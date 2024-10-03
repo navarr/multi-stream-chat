@@ -248,11 +248,12 @@ function initializePostTwitchAuthorization(TWITCH_CHANNEL_ID) {
             userColor: e.color,
             messageText: twitchMessageConverter.convertMessage(e.messageParts),
             badges: badges,
-            highlight: e.messageType === 'channel_points_highlighted',
-            hasGift: typeof e.bits !== 'undefined' && e.bits > 0,
+            highlight: e.messageType === 'channel_points_highlighted' || e.messageType === 'power_ups_message_effect',
+            hasGift: (typeof e.bits !== 'undefined' && e.bits > 0) || e.messageType === 'power_ups_gigantified_emote' || e.messageType === 'power_ups_message_effect',
             userIntro: e.messageType === 'user_intro',
             profileImage: '/twitchimage/' + e.chatterName,
             streamChat: e.source_broadcaster_user_name ?? null,
+            gigantifyEmotes: e.messageType === 'power_ups_gigantified_emote',
         }
         if (e.parentMessageText) {
             message.parentMessage = {
