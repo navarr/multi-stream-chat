@@ -147,7 +147,7 @@ function initializePostTwitchAuthorization(TWITCH_CHANNEL_ID) {
             messageText: twitchMessageConverter.convertMessage(e.messageParts),
         };
         if (e.type === 'sub') {
-            console.log('Sub', e);
+            console.log('Sub', JSON.stringify(e));
             io.sockets.emit('subscribe', Object.assign({}, basicData, {
                 tier: e.tier / 1000,
                 months: 1,
@@ -155,7 +155,7 @@ function initializePostTwitchAuthorization(TWITCH_CHANNEL_ID) {
                 isPrime: e.isPrime
             }));
         } else if (e.type === 'resub') {
-            console.log('Resub', e);
+            console.log('Resub', JSON.stringify(e));
             io.sockets.emit('subscribe', Object.assign({}, basicData, {
                 tier: e.tier / 1000,
                 months: e.cumulativeMonths,
@@ -163,14 +163,14 @@ function initializePostTwitchAuthorization(TWITCH_CHANNEL_ID) {
                 isPrime: e.isPrime
             }));
         } else if (e.type === 'community_sub_gift') {
-            console.log('Community Sub Gift', e);
+            console.log('Community Sub Gift', JSON.stringify(e));
             io.sockets.emit('community_gift', Object.assign({}, basicData, {
                 tier: e.tier / 1000,
                 amount: e.amount,
                 totalGifts: e.cumulativeAmount
             }));
         } else if (e.type === 'sub_gift') {
-            console.log('Sub Gift', e);
+            console.log('Sub Gift', JSON.stringify(e));
             io.sockets.emit('sub_gift', Object.assign({}, basicData, {
                 tier: e.tier / 1000,
                 months: 1,
@@ -181,7 +181,7 @@ function initializePostTwitchAuthorization(TWITCH_CHANNEL_ID) {
                 recipientUserName: e.recipientName
             }));
         } else if (e.type === 'gift_paid_upgrade') {
-            console.log('Gift Paid Upgrade', e);
+            console.log('Gift Paid Upgrade', JSON.stringify(e));
             io.sockets.emit('subscribe_upgrade', Object.assign({}, basicData, {
                 fromDisplayName: e.gifterDisplayName,
                 fromUserName: e.gifterName,
@@ -194,7 +194,7 @@ function initializePostTwitchAuthorization(TWITCH_CHANNEL_ID) {
                 isPrime: false
             }))
         } else if (e.type === 'prime_paid_upgrade') {
-            console.log('Prime Paid Upgrade', e);
+            console.log('Prime Paid Upgrade', JSON.stringify(e));
             io.sockets.emit('subscribe_upgrade', Object.assign({}, basicData, {
                 from: 'prime',
             }));
@@ -205,7 +205,7 @@ function initializePostTwitchAuthorization(TWITCH_CHANNEL_ID) {
                 isPrime: false
             }))
         } else if (e.type === 'pay_it_forward') {
-            console.log('Pay it Forward', e);
+            console.log('Pay it Forward', JSON.stringify(e));
         } else if (e.type === 'charity_donation') {
             io.sockets.emit('charity', Object.assign({}, basicData, {
                 charity: e.charityName,
@@ -224,9 +224,9 @@ function initializePostTwitchAuthorization(TWITCH_CHANNEL_ID) {
                 profileImage: '/twitchimage/' + e.chatterName,
             }));
         } else if (e.type === '') {
-            console.log('Blank type?', e);
+            console.log('Blank type?', JSON.stringify(e));
         } else {
-            console.log('Unhandled Event Type', e.type, e);
+            console.log('Unhandled Event Type', e.type, JSON.stringify(e));
         }
     });
 
@@ -242,6 +242,7 @@ function initializePostTwitchAuthorization(TWITCH_CHANNEL_ID) {
         }
         const message = {
             source: 'twitch',
+            isAction: e.messageText.startsWith("\u0001ACTION "),
             displayName: e.chatterDisplayName,
             username: e.chatterName,
             userColor: e.color,
@@ -251,6 +252,7 @@ function initializePostTwitchAuthorization(TWITCH_CHANNEL_ID) {
             hasGift: typeof e.bits !== 'undefined' && e.bits > 0,
             userIntro: e.messageType === 'user_intro',
             profileImage: '/twitchimage/' + e.chatterName,
+            streamChat: e.source_broadcaster_user_name ?? null,
         }
         if (e.parentMessageText) {
             message.parentMessage = {

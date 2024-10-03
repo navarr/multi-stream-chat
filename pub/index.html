@@ -10,14 +10,16 @@
     .list-item.specialAttention { background: #001500; }
     .list-item:nth-child(even):is(.specialAttention) { background: #002000; }
     .list-item .username { font-weight: bold; margin: 0 0 5px 0; }
-    .list-item .reply-to {
+    .list-item .reply-to,
+    .list-item .parent-chat {
         text-overflow: ellipsis;
         white-space: nowrap;
         max-width: 100%;
         font-size: 80%;
     }
     .list-item .reply-to,
-    .list-item .redeem-info {
+    .list-item .redeem-info,
+    .list-item .parent-chat {
         color: #777;
         padding: 0 0 5px 0;
     }
@@ -93,6 +95,10 @@
         width: 25px;
         height: 25px;
         border-radius: 25px;
+    }
+
+    .message-text.is-action {
+        font-style: italic;
     }
 </style>
 <div id="message-list" data-bind="css: {'hasSticky': stickyMessage() !== null}">
@@ -181,9 +187,14 @@
                 </dl>
                 <!-- /ko -->
             <!-- /ko -->
+            <!-- ko if: typeof streamChat !== 'undefined' && streamChat -->
+                <div class="parent-chat">
+                    Posted in shared chat for @<!-- ko text: streamChat --><!-- /ko -->
+                </div>
+            <!-- /ko -->
             <!-- ko if: typeof parentMessage !== 'undefined' && parentMessage !== null -->
                 <div class="reply-to">
-                Replying to @<!-- ko text: parentMessage.username --><!-- /ko -->: <!-- ko text: parentMessage.message --><!-- /ko -->
+                    Replying to @<!-- ko text: parentMessage.username --><!-- /ko -->: <!-- ko text: parentMessage.message --><!-- /ko -->
                 </div>
             <!-- /ko -->
             <!-- ko if: type === 'redeem' -->
@@ -199,7 +210,7 @@
             <!-- ko if: type === 'chat' && userIntro -->
                 <div class="intro-message">introduced themselves</div>
             <!-- /ko -->
-            <div class="message-text" data-bind="html: messageText"></div>
+            <div class="message-text" data-bind="html: messageText, css: {'is-action' : isAction}"></div>
         <!-- /ko -->
         <!-- ko if: type === 'gift' -->
         <div class="gift-text">
@@ -447,6 +458,7 @@
                     pronounIdent: pronounIdent,
                     parentMessage: typeof data.parentMessage !== 'undefined' ? data.parentMessage : null,
                     onlyEmotes: onlyEmotes,
+                    isAction: data.isAction,
                     highlight: data.highlight,
                     displayTime: `${generateDisplayTime(data.timeInMillis)}`,
                     isAnnouncement: data.isAnnouncement,
@@ -454,6 +466,7 @@
                     hasGift: data.hasGift,
                     userIntro: data.userIntro,
                     profileImage: data.profileImage,
+                    streamChat: data.streamChat
                 });
             });
             viewModel.socket.on('redeem', (data) => {
