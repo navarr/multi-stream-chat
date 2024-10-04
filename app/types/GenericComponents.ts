@@ -13,6 +13,14 @@ export interface ContainsMessage {
     messageHtml: string
 }
 
+export interface CouldBeAction {
+    isAction: boolean
+}
+
+export interface CouldBeAnnouncement {
+    isAnnouncement: boolean
+}
+
 export interface FromService {
     sourceService: string
 }
