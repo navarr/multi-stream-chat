@@ -98,8 +98,14 @@
         border-radius: 25px;
     }
 
-    .message-text.is-action {
+    .list-item.isAction .message-text,
+    .list-item.isAction > .username {
         font-style: italic;
+    }
+
+    .list-item.giganticEmotes .message-text img:last-child {
+        height: 112px;
+        display:block;
     }
 </style>
 <div id="message-list" data-bind="css: {'hasSticky': stickyMessage() !== null}">
@@ -211,7 +217,7 @@
             <!-- ko if: type === 'chat' && userIntro -->
                 <div class="intro-message">introduced themselves</div>
             <!-- /ko -->
-            <div class="message-text" data-bind="html: messageText, css: {'is-action' : isAction, 'gigantic-emotes': gigantifyEmotes}"></div>
+            <div class="message-text" data-bind="html: messageText"></div>
         <!-- /ko -->
         <!-- ko if: type === 'gift' -->
         <div class="gift-text">
@@ -250,13 +256,15 @@
         <!-- /ko -->
         <!-- ko if: type === 'subscribe' -->
         <div class="subscribe-text">
-            <!-- ko if: typeof tier !== 'undefined' -->
-            subscribed at Tier <span data-bind="text: tier"></span>.
-            Months: <span data-bind="text: months"></span>,
-            Streak: <span data-bind="text:streak"></span>
-            <!-- /ko -->
-            <!-- ko if: typeof tier === 'undefined' -->
             subscribed!
+            <!-- ko if: typeof tier !== 'undefined' -->
+            Tier <span data-bind="text: tier"></span>.
+            <!-- /ko -->
+            <!-- ko if: typeof months !== 'undefined' -->
+            Months: <span data-bind="text: months"></span>.
+            <!-- /ko -->
+            <!-- ko if: typeof streak !== 'undefined' -->
+            Streak: <span data-bind="text:streak"></span>.
             <!-- /ko -->
         </div>
         <!-- /ko -->
@@ -308,10 +316,13 @@
             // {'onlyEmotes': onlyEmotes, 'specialAttention': $root.isSpecialAttention($data), 'highlight': (typeof highlight !== 'undefined' && highlight) }
             const classes = {
                 'onlyEmotes': message.onlyEmotes,
+                'giganticEmotes': message.gigantifyEmotes,
+                'isAction': message.isAction,
                 'specialAttention': viewModel.isSpecialAttention(message),
                 'highlight': typeof message.highlight !== 'undefined' && message.highlight,
                 'announcement': message.isAnnouncement,
             }
+            if (message.gigantifyEmotes)
             if (message.isAnnouncement) {
                 classes['announcement-' + message.announcementColor] = true;
             }

@@ -1,12 +1,9 @@
 import {ChatMessageEvent as BaseChatMessageEvent} from "../../../event/ChatMessageEvent";
-import {ContainsUsername} from "../../../types/GenericComponents";
+import {ContainsUsername, FromService} from "../../../types/GenericComponents";
 import {Badge, ContainsBadges} from "../../../types/Badges";
 
-class ChatMessageEvent implements BaseChatMessageEvent, ContainsUsername, ContainsBadges {
-    badges: Array<Badge>;
-    displayName: string;
-    messageHtml: string;
-    messageText: string;
+export class ChatMessageEvent extends BaseChatMessageEvent implements FromService, ContainsUsername, ContainsBadges {
     sourceService: string = "tiktok";
+    badges: Array<Badge>;
     username: string;
 }

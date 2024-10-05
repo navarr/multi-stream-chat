@@ -44,11 +44,9 @@ using your free ngrok domain.
 **WARNING**: TikTok compatibility is not perfect.  Some messages from certain users will just never show up.  I haven't
 figured this out yet.
 
-1. Optionally, you can set your cookie SESSION_ID in the `.env` file and this may help some messages display
-
 ## Connecting
 
-Once you have Ngrok running (NGrok Step 4), you can run `node server.ts` to start the application.
+Once you have Ngrok running (NGrok Step 4), you can run `node --import=tsx server.ts` to start the application.
 Then, proceed to `https://your-free-domain.ngrok-free.app/admin.html` to control the app, and 
 `https://your-free-domain.ngrok-free.app/` to view chat.  This can definitely be set as an OBS Panel source, and I 
 highly recommend you do so!
