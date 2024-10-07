@@ -55,10 +55,12 @@ export class TiktokInitializer implements Module {
                         tiktokComment.username = message.data.user.displayId;
                         tiktokComment.messageText = this.assembleMessageText(message.data.content, message.data.emotesList);
                         tiktokComment.messageHtml = this.assembleMessageHtml(message.data.content, message.data.emotesList);
-                        try {
-                            tiktokComment.badges = this.assembleBadges(message.data.user.badgeList);
-                        } catch (e) {
-                            logger.error('Error Assembling Badges for Chat Message', JSON.stringify(message.data.user.badgeList));
+                        if (typeof message.data.user.badgeList !== 'undefined') {
+                            try {
+                                tiktokComment.badges = this.assembleBadges(message.data.user.badgeList);
+                            } catch (e) {
+                                logger.error('Error Assembling Badges for Chat Message', JSON.stringify(message.data.user.badgeList), e);
+                            }
                         }
                         eventHandler.submitEvent(tiktokComment);
                 }
@@ -100,12 +102,16 @@ export class TiktokInitializer implements Module {
         const badges = new Array<Badge>();
         badgeList.forEach((rawBadge: BadgeStruct) => {
             let badge;
-            if (rawBadge.displayType === 'BADGEDISPLAYTYPE_COMBINE' && rawBadge.combine.str.length) {
+            if (rawBadge.displayType === 'BADGEDISPLAYTYPE_COMBINE' && typeof rawBadge.combine.str !== 'undefined' && rawBadge.combine.str.length) {
                 badge = new ImageAndTextBadge();
                 badge.displayText = rawBadge.combine.str;
                 badge.background = new Color();
                 badge.background.lightMode = this.convertTikTokColorToRgba(rawBadge.combine.background.backgroundColorCode)
-                badge.background.darkMode = this.convertTikTokColorToRgba(rawBadge.combine.backgroundDarkMode.backgroundColorCode)
+                if (typeof rawBadge.combine.backgroundDarkMode !== 'undefined') {
+                    badge.background.darkMode = this.convertTikTokColorToRgba(rawBadge.combine.backgroundDarkMode.backgroundColorCode)
+                } else {
+                    badge.background.darkMode = badge.background.lightMode;
+                }
                 badge.imageUrl = rawBadge.combine.icon.urlList[0];
             } else if (rawBadge.displayType === 'BADGEDISPLAYTYPE_COMBINE') {
                 badge = new ImageBadge();

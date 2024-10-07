@@ -20,44 +20,44 @@ class Logger {
         this.level = logLevel;
     }
 
-    public debug() {
+    public debug(...args: any) {
         if (this.level <= LogLevel.DEBUG)
-            console.log(...arguments);
+            console.log(...args);
     }
 
-    public info() {
+    public info(...args: any) {
         if (this.level <= LogLevel.INFO)
-            console.info(...arguments);
+            console.info(...args);
     }
 
-    public notice() {
+    public notice(...args: any) {
         if (this.level <= LogLevel.NOTICE)
-            console.log(...arguments);
+            console.log(...args);
     }
 
-    public warn() {
+    public warn(...args: any) {
         if (this.level <= LogLevel.WARNING)
-            console.warn(...arguments);
+            console.warn(...args);
     }
 
-    public error() {
+    public error(...args: any) {
         if (this.level <= LogLevel.ERROR)
-            console.error(...arguments);
+            console.error(...args);
     }
 
-    public critical() {
+    public critical(...args: any) {
         if (this.level <= LogLevel.CRITICAL)
-            console.error(...arguments);
+            console.error(...args);
     }
 
-    public alert() {
+    public alert(...args: any) {
         if (this.level <= LogLevel.ALERT)
-            console.error(...arguments);
+            console.error(...args);
     }
 
-    public emergency() {
+    public emergency(...args: any) {
         if (this.level <= LogLevel.EMERGENCY)
-            console.error(...arguments);
+            console.error(...args);
     }
 }
 
