@@ -1,5 +1,7 @@
 import {env} from 'node:process';
 
+require('dotenv').config();
+
 export interface ConfigManager {
     get(configPath: string): string | null;
 }

@@ -14,11 +14,15 @@ export interface Badge {
     type: BadgeType
 }
 
-export interface ImageBadge extends Badge, Image {
-    srcset: Array<Image & ContainsSizeDescriptor>
+export class ImageBadge implements Badge, Image {
+    type: BadgeType = BadgeType.IMAGE;
+    srcset: Array<Image & ContainsSizeDescriptor> = []
+    alternativeText: string = '';
+    imageUrl: string;
 }
 
-export interface ImageAndTextBadge extends ImageBadge {
+export class ImageAndTextBadge extends ImageBadge {
+    type: BadgeType = BadgeType.IMAGE_AND_TEXT
     displayText: string
     background: Color | null
 }
