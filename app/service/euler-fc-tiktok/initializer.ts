@@ -9,6 +9,7 @@ import {eventHandler} from "../../framework/EventHandler";
 import {configManager} from "../../framework/ConfigHandler";
 import {JoinEvent} from "./event/JoinEvent";
 import {ContainsDisplayName, ContainsUsername} from "../../types/GenericComponents";
+import {LikeEvent} from "./event/LikeEvent";
 
 /**
  * This class is responsible for initializing the TikTok module
@@ -70,6 +71,12 @@ export class TiktokInitializer implements Module {
                         const tiktokJoin = new JoinEvent();
                         this.assignUserDetails(tiktokJoin, message);
                         eventHandler.submitEvent(tiktokJoin);
+                        break;
+
+                    case 'LikeEvent':
+                        const tiktokLike = new LikeEvent();
+                        this.assignUserDetails(tiktokLike, message);
+                        eventHandler.submitEvent(tiktokLike);
                         break;
                 }
             } catch (e) {
