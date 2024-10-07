@@ -2,11 +2,13 @@ import {Module} from "../../framework/Module";
 import {connectionHandler} from "./connectionHandler";
 import {logger} from "../../framework/Logger";
 import {ChatMessageEvent} from "./event/ChatMessageEvent";
-import {Badge, BadgeType, ImageAndTextBadge, ImageBadge} from "../../types/Badges";
+import {Badge, ImageAndTextBadge, ImageBadge} from "../../types/Badges";
 import {Color, RedGreenBlueAlpha} from "../../types/Color";
 import {BadgeStruct} from "@tiktoklive/types";
 import {eventHandler} from "../../framework/EventHandler";
 import {configManager} from "../../framework/ConfigHandler";
+import {JoinEvent} from "./event/JoinEvent";
+import {ContainsDisplayName, ContainsUsername} from "../../types/GenericComponents";
 
 /**
  * This class is responsible for initializing the TikTok module
@@ -51,8 +53,7 @@ export class TiktokInitializer implements Module {
                 switch (message.name) {
                     case 'CommentEvent':
                         const tiktokComment = new ChatMessageEvent();
-                        tiktokComment.displayName = message.data.user.nickname;
-                        tiktokComment.username = message.data.user.displayId;
+                        this.assignUserDetails(tiktokComment, message);
                         tiktokComment.messageText = this.assembleMessageText(message.data.content, message.data.emotesList);
                         tiktokComment.messageHtml = this.assembleMessageHtml(message.data.content, message.data.emotesList);
                         if (typeof message.data.user.badgeList !== 'undefined') {
@@ -63,11 +64,24 @@ export class TiktokInitializer implements Module {
                             }
                         }
                         eventHandler.submitEvent(tiktokComment);
+                        break;
+
+                    case 'JoinEvent':
+                        const tiktokJoin = new JoinEvent();
+                        this.assignUserDetails(tiktokJoin, message);
+                        eventHandler.submitEvent(tiktokJoin);
+                        break;
                 }
             } catch (e) {
                 logger.error('Unknown error', e);
             }
         })
+    }
+
+    private assignUserDetails(event: ContainsDisplayName & ContainsUsername, rawEvent: Object) {
+        event.displayName = rawEvent.data.user.nickname;
+        event.username = rawEvent.data.user.displayId;
+        return event;
     }
 
     private assembleMessageText(text: string, emoteList): string {
