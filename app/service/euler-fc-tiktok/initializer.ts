@@ -55,7 +55,11 @@ export class TiktokInitializer implements Module {
                         tiktokComment.username = message.data.user.displayId;
                         tiktokComment.messageText = this.assembleMessageText(message.data.content, message.data.emotesList);
                         tiktokComment.messageHtml = this.assembleMessageHtml(message.data.content, message.data.emotesList);
-                        tiktokComment.badges = this.assembleBadges(message.data.user.badgeList);
+                        try {
+                            tiktokComment.badges = this.assembleBadges(message.data.user.badgeList);
+                        } catch (e) {
+                            logger.error('Error Assembling Badges for Chat Message', JSON.stringify(message.data.user.badgeList));
+                        }
                         eventHandler.submitEvent(tiktokComment);
                 }
             } catch (e) {
@@ -100,8 +104,8 @@ export class TiktokInitializer implements Module {
                 badge = new ImageAndTextBadge();
                 badge.displayText = rawBadge.combine.str;
                 badge.background = new Color();
-                badge.background.lightMode = this.convertTikTokColorToRgba(rawBadge.combine.background.background_color_code)
-                badge.background.darkMode = this.convertTikTokColorToRgba(rawBadge.combine.backgroundDarkMod.background_color_codee)
+                badge.background.lightMode = this.convertTikTokColorToRgba(rawBadge.combine.background.backgroundColorCode)
+                badge.background.darkMode = this.convertTikTokColorToRgba(rawBadge.combine.backgroundDarkMode.backgroundColorCode)
                 badge.imageUrl = rawBadge.combine.icon.urlList[0];
             } else if (rawBadge.displayType === 'BADGEDISPLAYTYPE_COMBINE') {
                 badge = new ImageBadge();
