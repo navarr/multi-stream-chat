@@ -5,6 +5,12 @@ import {SERVICE_NAME} from "../constants";
 
 export class ChatMessageEvent extends BaseChatMessageEvent implements FromService, ContainsUsername, ContainsBadges {
     sourceService: string = SERVICE_NAME;
-    badges: Array<Badge>;
+    badges: Badge[];
     username: string;
+
+    constructor(displayName: string, chatMessageHtml: string, chatMessageText: string, username: string, badges: Badge[]) {
+        super(displayName, chatMessageHtml, chatMessageText);
+        this.username = username;
+        this.badges = badges;
+    }
 }

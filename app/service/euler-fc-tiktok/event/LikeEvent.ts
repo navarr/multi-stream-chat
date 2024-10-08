@@ -6,4 +6,9 @@ export class LikeEvent extends ReactEvent implements ContainsUsername, FromServi
     sourceService: string = SERVICE_NAME;
     reactionType: string = "like";
     username: string;
+
+    constructor(displayName: string, username: string) {
+        super(displayName, 'like');
+        this.username = username;
+    }
 }

@@ -10,4 +10,10 @@ export class ChatMessageEvent implements Event, ContainsMessage, ContainsDisplay
     displayName: string;
     messageHtml: string;
     messageText: string;
+
+    constructor(displayName: string, messageHtml: string, messageText: string) {
+        this.displayName = displayName;
+        this.messageHtml = messageHtml;
+        this.messageText = messageText;
+    }
 }

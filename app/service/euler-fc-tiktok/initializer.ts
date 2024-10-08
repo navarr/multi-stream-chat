@@ -10,13 +10,12 @@ import {
     CommentEvent as LibCommentEvent,
     JoinEvent as LibJoinEvent,
     LikeEvent as LibLikeEvent,
-    User,
+    FollowEvent as LibFollowEvent,
     WebcastChatMessageEmoteWithIndex,
 } from "../../types/TikTokTypes";
 import {eventHandler} from "../../framework/EventHandler";
 import {configManager} from "../../framework/ConfigHandler";
 import {JoinEvent} from "./event/JoinEvent";
-import {ContainsDisplayName, ContainsUsername} from "../../types/GenericComponents";
 import {LikeEvent} from "./event/LikeEvent";
 import {FollowEvent} from "./event/FollowEvent";
 
@@ -74,9 +73,7 @@ export class TiktokInitializer implements Module {
                         break;
 
                     case 'FollowEvent':
-                        const tiktokFollow = new FollowEvent();
-                        this.assignUserDetails(tiktokFollow, message);
-                        eventHandler.submitEvent(tiktokFollow);
+                        this.handleFollowEvent(message.data as LibFollowEvent);
                         break;
                 }
             } catch (e) {
@@ -85,37 +82,43 @@ export class TiktokInitializer implements Module {
         })
     }
 
+    private handleFollowEvent(event: LibFollowEvent) {
+        eventHandler.submitEvent(new FollowEvent(
+            event.user.nickname,
+            event.user.displayId
+        ));
+    }
+
     private handleLikeEvent(event: LibLikeEvent) {
-        const tiktokLike = new LikeEvent();
-        this.assignUserDetails(tiktokLike, event.user);
-        eventHandler.submitEvent(tiktokLike);
+        eventHandler.submitEvent(new LikeEvent(
+            event.user.nickname,
+            event.user.displayId
+        ));
     }
 
     private handleJoinEvent(event: LibJoinEvent) {
-        const tiktokJoin = new JoinEvent();
-        this.assignUserDetails(tiktokJoin, event.user);
-        eventHandler.submitEvent(tiktokJoin);
+        eventHandler.submitEvent(new JoinEvent(
+            event.user.nickname,
+            event.user.displayId
+        ));
     }
 
     private handleCommentEvent(event: LibCommentEvent) {
-        const tiktokComment = new ChatMessageEvent();
-        this.assignUserDetails(tiktokComment, event.user);
-        tiktokComment.messageText = this.assembleMessageText(event.content, event.emotesList);
-        tiktokComment.messageHtml = this.assembleMessageHtml(event.content, event.emotesList);
+        let badges: Badge[] = [];
         if (typeof event.user.badgeList !== 'undefined') {
             try {
-                tiktokComment.badges = this.assembleBadges(event.user.badgeList);
+                badges = this.assembleBadges(event.user.badgeList);
             } catch (e) {
                 logger.error('Error Assembling Badges for Chat Message', JSON.stringify(event.user.badgeList), e);
             }
         }
-        eventHandler.submitEvent(tiktokComment);
-    }
-
-    private assignUserDetails(event: ContainsDisplayName & ContainsUsername, user: User) {
-        event.displayName = user.nickname;
-        event.username = user.displayId;
-        return event;
+        eventHandler.submitEvent(new ChatMessageEvent(
+            event.user.nickname,
+            event.user.displayId,
+            this.assembleMessageText(event.content, event.emotesList),
+            this.assembleMessageHtml(event.content, event.emotesList),
+            badges
+        ));
     }
 
     private assembleMessageText(text: string, emoteList: WebcastChatMessageEmoteWithIndex[]): string {
@@ -138,7 +141,7 @@ export class TiktokInitializer implements Module {
 
         for (let emoteIndex in emoteList) {
             const emote = emoteList[emoteIndex];
-            const imageString = `<img src="${emote.emote.image.urlList[0]}">`;
+            const imageString = `<img src="${emote.emote.image.urlList[0]}" alt="${emote.emote.emoteId}">`;
             startLength += imageString.length;
             comment = comment.substring(0, emote.index + startLength) + imageString + comment.substring(emote.index + startLength);
         }
