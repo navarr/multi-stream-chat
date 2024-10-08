@@ -3,9 +3,7 @@ import {Event} from "./Event"
 
 const CHAT_MESSAGE_EVENT_NAME = 'comment';
 
-export {CHAT_MESSAGE_EVENT_NAME};
-
-export class ChatMessageEvent implements Event, ContainsMessage, ContainsDisplayName {
+class CommentEvent implements Event, ContainsMessage, ContainsDisplayName {
     eventType: string = CHAT_MESSAGE_EVENT_NAME;
     displayName: string;
     messageHtml: string;
@@ -17,3 +15,5 @@ export class ChatMessageEvent implements Event, ContainsMessage, ContainsDisplay
         this.messageText = messageText;
     }
 }
+
+export {CHAT_MESSAGE_EVENT_NAME, CommentEvent};

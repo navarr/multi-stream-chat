@@ -1,11 +1,11 @@
 import {TiktokInitializer} from "./service/euler-fc-tiktok/initializer";
 import {eventHandler} from "./framework/EventHandler";
-import {CHAT_MESSAGE_EVENT_NAME, ChatMessageEvent} from "./event/ChatMessageEvent";
+import {CHAT_MESSAGE_EVENT_NAME, CommentEvent} from "./event/CommentEvent";
 import {JOIN_EVENT_NAME, JoinEvent} from "./event/JoinEvent";
 import {REACT_EVENT_NAME, ReactEvent} from "./event/ReactEvent";
 
 // First, attach listeners
-eventHandler.addListener(CHAT_MESSAGE_EVENT_NAME, (event: ChatMessageEvent) => {
+eventHandler.addListener(CHAT_MESSAGE_EVENT_NAME, (event: CommentEvent) => {
     console.log(`<${event.displayName}> ${event.messageText}`);
 });
 

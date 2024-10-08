@@ -1,4 +1,4 @@
-import {ChatMessageEvent as BaseChatMessageEvent} from "../../../event/ChatMessageEvent";
+import {CommentEvent as BaseChatMessageEvent} from "../../../event/CommentEvent";
 import {ContainsUsername, CouldBeAction, CouldBeAnnouncement} from "../../../types/GenericComponents";
 import {Badge, ContainsBadges} from "../../../types/Badges";
 

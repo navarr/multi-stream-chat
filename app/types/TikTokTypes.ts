@@ -539,23 +539,23 @@ export interface GiftStruct  {
     describe: string
     duration: number
     id: number
-    for_linkmic: boolean
+    forLinkmic: boolean
     combo: boolean
     type: number
-    diamond_count: number
-    is_displayed_on_panel: boolean
-    primary_effect_id: number
-    gift_label_icon: Image
+    diamondCount: number
+    isDisplayedOnPanel: boolean
+    primaryEffectId: number
+    giftLabelIcon: Image
     name: string
     icon: Image
-    gold_effect: string
-    preview_image: Image
+    goldEffect: string
+    previewImage: Image
     gift_panel_banner: GiftStructGiftPanelBanner
-    is_broadcast_gift: boolean
+    isBroadcastGift: boolean
     is_effect_befview: boolean
-    is_random_gift: boolean
-    is_box_gift: boolean
-    can_put_in_gift_box: boolean
+    isRandomGift: boolean
+    isBoxGift: boolean
+    canPutInGiftBox: boolean
 }
 
 export interface GiftStructGiftPanelBanner  {
@@ -1607,26 +1607,26 @@ export interface WebcastResponseMessage  {
 
 export interface WebcastGiftMessage  {
     common: Common
-    gift_id: number
+    giftId: number
     fan_ticket_count: number
-    group_count: number
-    repeat_count: number
-    combo_count: number
+    groupCount: number
+    repeatCount: number
+    comboCount: number
     user: User
-    to_user: User
-    repeat_end: number
-    group_id: number
+    toUser: User
+    repeatEnd: number
+    groupId: number
     income_taskgifts: number
     room_fan_ticket_count: number
     gift: GiftStruct
     log_id: string
-    send_type: number
+    sendType: number
     monitor_extra: string
-    color_id: number
-    is_first_sent: boolean
+    colorId: number
+    isFirstSent: boolean
     order_id: string
-    user_identity: UserIdentity
-    user_gift_reciever: WebcastGiftMessageUserGiftReciever
+    userIdentity: UserIdentity
+    userGiftReceiver: WebcastGiftMessageUserGiftReciever
 }
 
 export interface WebcastGiftMessageUserGiftReciever  {
@@ -1848,12 +1848,12 @@ export interface WebcastSocialMessage  {
 export interface WebcastSubNotifyMessage  {
     common: Common
     user: User
-    sub_month: number
-    subscribe_type: SubscribeType
-    old_subscribe_status: OldSubscribeStatus
-    subscribing_status: SubscribingStatus
-    is_send: boolean
-    is_custom: boolean
+    subMonth: number
+    subscribeType: SubscribeType
+    oldSubscribeStatus: OldSubscribeStatus
+    subscribingStatus: SubscribingStatus
+    isSend: boolean
+    isCustom: boolean
 }
 
 export interface WebcastRankUpdateMessage  {

@@ -11,6 +11,8 @@ import {
     JoinEvent as LibJoinEvent,
     LikeEvent as LibLikeEvent,
     FollowEvent as LibFollowEvent,
+    SubscribeEvent as LibSubscribeEvent,
+    GiftEvent as LibGiftEvent,
     WebcastChatMessageEmoteWithIndex,
 } from "../../types/TikTokTypes";
 import {eventHandler} from "../../framework/EventHandler";
@@ -18,6 +20,7 @@ import {configManager} from "../../framework/ConfigHandler";
 import {JoinEvent} from "./event/JoinEvent";
 import {LikeEvent} from "./event/LikeEvent";
 import {FollowEvent} from "./event/FollowEvent";
+import {SubscribeEvent} from "./event/SubscribeEvent";
 
 /**
  * This class is responsible for initializing the TikTok module
@@ -75,11 +78,39 @@ export class TiktokInitializer implements Module {
                     case 'FollowEvent':
                         this.handleFollowEvent(message.data as LibFollowEvent);
                         break;
+
+                    case 'SubscribeEvent':
+                        this.handleSubscribeEvent(message.data as LibSubscribeEvent);
+                        break;
+
+                    case 'GiftEvent':
+                        this.handleGiftEvent(message.data as LibGiftEvent);
+                        break;
                 }
             } catch (e) {
                 logger.error('Unknown error', e);
             }
         })
+    }
+
+    private handleGiftEvent(event: LibGiftEvent) {
+        console.log('Gift Details', {
+            'Name': event.gift.name.trim(),
+            'Group ID': event.groupId,
+            'Group Count': event.groupCount,
+            'Per Gift Diamonds': event.gift.diamondCount,
+            'Diamonds': event.gift.diamondCount,
+            'Repeat': event.repeatCount,
+            'Finished?': event.repeatEnd,
+        })
+    }
+
+    private handleSubscribeEvent(event: LibSubscribeEvent) {
+        eventHandler.submitEvent(new SubscribeEvent(
+            event.user.nickname,
+            event.user.displayId,
+            event.subMonth
+        ));
     }
 
     private handleFollowEvent(event: LibFollowEvent) {
@@ -92,7 +123,8 @@ export class TiktokInitializer implements Module {
     private handleLikeEvent(event: LibLikeEvent) {
         eventHandler.submitEvent(new LikeEvent(
             event.user.nickname,
-            event.user.displayId
+            event.user.displayId,
+            event.count
         ));
     }
 
