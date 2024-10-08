@@ -1,4 +1,4 @@
-import {ContainsDisplayName, ContainsMessage, FromService} from "../types/GenericComponents";
+import {ContainsDisplayName, ContainsMessage} from "../types/GenericComponents";
 import {Event} from "./Event"
 
 const CHAT_MESSAGE_EVENT_NAME = 'comment';

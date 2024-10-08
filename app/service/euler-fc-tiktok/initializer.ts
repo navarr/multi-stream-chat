@@ -4,7 +4,15 @@ import {logger} from "../../framework/Logger";
 import {ChatMessageEvent} from "./event/ChatMessageEvent";
 import {Badge, ImageAndTextBadge, ImageBadge} from "../../types/Badges";
 import {Color, RedGreenBlueAlpha} from "../../types/Color";
-import {BadgeStruct} from "@tiktoklive/types";
+import {
+    BadgeStruct,
+    BadgeStructBadgeDisplayType,
+    CommentEvent as LibCommentEvent,
+    JoinEvent as LibJoinEvent,
+    LikeEvent as LibLikeEvent,
+    User,
+    WebcastChatMessageEmoteWithIndex,
+} from "../../types/TikTokTypes";
 import {eventHandler} from "../../framework/EventHandler";
 import {configManager} from "../../framework/ConfigHandler";
 import {JoinEvent} from "./event/JoinEvent";
@@ -30,7 +38,7 @@ export class TiktokInitializer implements Module {
     setupConnection(username: string): void {
         const socket = connectionHandler.getConnection(username);
         socket.on('message', (rawMessage: string) => {
-            let message;
+            let message: { type: string | undefined, name: string | undefined, data: object };
             try {
                 message = JSON.parse(rawMessage);
             } catch {
@@ -54,30 +62,15 @@ export class TiktokInitializer implements Module {
 
                 switch (message.name) {
                     case 'CommentEvent':
-                        const tiktokComment = new ChatMessageEvent();
-                        this.assignUserDetails(tiktokComment, message);
-                        tiktokComment.messageText = this.assembleMessageText(message.data.content, message.data.emotesList);
-                        tiktokComment.messageHtml = this.assembleMessageHtml(message.data.content, message.data.emotesList);
-                        if (typeof message.data.user.badgeList !== 'undefined') {
-                            try {
-                                tiktokComment.badges = this.assembleBadges(message.data.user.badgeList);
-                            } catch (e) {
-                                logger.error('Error Assembling Badges for Chat Message', JSON.stringify(message.data.user.badgeList), e);
-                            }
-                        }
-                        eventHandler.submitEvent(tiktokComment);
+                        this.handleCommentEvent(message.data as LibCommentEvent);
                         break;
 
                     case 'JoinEvent':
-                        const tiktokJoin = new JoinEvent();
-                        this.assignUserDetails(tiktokJoin, message);
-                        eventHandler.submitEvent(tiktokJoin);
+                        this.handleJoinEvent(message.data as LibJoinEvent);
                         break;
 
                     case 'LikeEvent':
-                        const tiktokLike = new LikeEvent();
-                        this.assignUserDetails(tiktokLike, message);
-                        eventHandler.submitEvent(tiktokLike);
+                        this.handleLikeEvent(message.data as LibLikeEvent);
                         break;
 
                     case 'FollowEvent':
@@ -92,13 +85,40 @@ export class TiktokInitializer implements Module {
         })
     }
 
-    private assignUserDetails(event: ContainsDisplayName & ContainsUsername, rawEvent: Object) {
-        event.displayName = rawEvent.data.user.nickname;
-        event.username = rawEvent.data.user.displayId;
+    private handleLikeEvent(event: LibLikeEvent) {
+        const tiktokLike = new LikeEvent();
+        this.assignUserDetails(tiktokLike, event.user);
+        eventHandler.submitEvent(tiktokLike);
+    }
+
+    private handleJoinEvent(event: LibJoinEvent) {
+        const tiktokJoin = new JoinEvent();
+        this.assignUserDetails(tiktokJoin, event.user);
+        eventHandler.submitEvent(tiktokJoin);
+    }
+
+    private handleCommentEvent(event: LibCommentEvent) {
+        const tiktokComment = new ChatMessageEvent();
+        this.assignUserDetails(tiktokComment, event.user);
+        tiktokComment.messageText = this.assembleMessageText(event.content, event.emotesList);
+        tiktokComment.messageHtml = this.assembleMessageHtml(event.content, event.emotesList);
+        if (typeof event.user.badgeList !== 'undefined') {
+            try {
+                tiktokComment.badges = this.assembleBadges(event.user.badgeList);
+            } catch (e) {
+                logger.error('Error Assembling Badges for Chat Message', JSON.stringify(event.user.badgeList), e);
+            }
+        }
+        eventHandler.submitEvent(tiktokComment);
+    }
+
+    private assignUserDetails(event: ContainsDisplayName & ContainsUsername, user: User) {
+        event.displayName = user.nickname;
+        event.username = user.displayId;
         return event;
     }
 
-    private assembleMessageText(text: string, emoteList): string {
+    private assembleMessageText(text: string, emoteList: WebcastChatMessageEmoteWithIndex[]): string {
         let comment = text,
             startLength = 0;
 
@@ -112,7 +132,7 @@ export class TiktokInitializer implements Module {
         return comment;
     }
 
-    private assembleMessageHtml(text: string, emoteList): string {
+    private assembleMessageHtml(text: string, emoteList: WebcastChatMessageEmoteWithIndex[]): string {
         let comment = text,
             startLength = 0;
 
@@ -130,7 +150,7 @@ export class TiktokInitializer implements Module {
         const badges = new Array<Badge>();
         badgeList.forEach((rawBadge: BadgeStruct) => {
             let badge;
-            if (rawBadge.displayType === 'BADGEDISPLAYTYPE_COMBINE' && typeof rawBadge.combine.str !== 'undefined' && rawBadge.combine.str.length) {
+            if (rawBadge.displayType === BadgeStructBadgeDisplayType.BADGEDISPLAYTYPE_COMBINE && typeof rawBadge.combine.str !== 'undefined' && rawBadge.combine.str.length) {
                 badge = new ImageAndTextBadge();
                 badge.displayText = rawBadge.combine.str;
                 badge.background = new Color();
@@ -141,7 +161,7 @@ export class TiktokInitializer implements Module {
                     badge.background.darkMode = badge.background.lightMode;
                 }
                 badge.imageUrl = rawBadge.combine.icon.urlList[0];
-            } else if (rawBadge.displayType === 'BADGEDISPLAYTYPE_COMBINE') {
+            } else if (rawBadge.displayType === BadgeStructBadgeDisplayType.BADGEDISPLAYTYPE_COMBINE) {
                 badge = new ImageBadge();
                 badge.imageUrl = rawBadge.combine.icon.urlList[0];
             }
