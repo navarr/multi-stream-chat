@@ -24,6 +24,14 @@ class EulerConnectionWrapper extends EventEmitter {
         this.endpointUrl = `wss://cloud.eulerstream.com/ws?api_key=${apiKey}&unique_id=${uniqueId}`;
     }
 
+    emit(event: string | symbol, ...args): boolean {
+        try {
+            return super.emit(event, ...args);
+        } catch (e) {
+            console.error(`Error while emitting event ${event}`, ...args, e);
+        }
+    }
+
     connect(isReconnect) {
         try {this.websocket.close(); } catch(e) {}
 

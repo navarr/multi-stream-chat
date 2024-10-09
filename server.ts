@@ -344,8 +344,11 @@ function initializeTikTokThroughEuler(eulerTiktok, channelName) {
     });
 
     eulerTiktok.on('subscribe', (data: SubscribeEvent) => {
+        console.log('TikTok subscription', JSON.stringify(data));
         io.sockets.emit('subscribe', {
+            // tier, months, streak, isPrime
             type: 'subscribe',
+            months: data.subMonth,
             source: 'tiktok',
             displayName: data.user.nickname,
             username: data.user.displayId
