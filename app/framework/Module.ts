@@ -1,6 +1,8 @@
-export interface Module {
-    moduleName: string
+export abstract class Module {
+    abstract initialize(config: any): void;
+    abstract shutdown(): void;
 
-    initialize(): void;
-    shutdown(): void;
+    public static getModuleName(): string {
+        throw new Error('Module must define a moduleName');
+    }
 }

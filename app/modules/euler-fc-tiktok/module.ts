@@ -22,21 +22,22 @@ import {LikeEvent} from "./event/LikeEvent";
 import {FollowEvent} from "./event/FollowEvent";
 import {SubscribeEvent} from "./event/SubscribeEvent";
 import {ComboGiftEvent, GiftImage, GiftSummaryEvent} from "./event/GiftEvent";
+import {moduleRegistry} from "../../framework/ModuleRegistry";
 
 /**
  * This class is responsible for initializing the TikTok module
  */
-export class TiktokInitializer implements Module {
-    moduleName: string = "TikTok";
+class TiktokInitializer implements Module {
+    public static MODULE_NAME: string = "euler-fc-tiktok";
     giftGroups: Record<string, number> = {};
 
     initialize(): void {
-        // Create Connection Handler
-        // Add Listener for Admin-triggered events
-        // Send Events to EventBus
-
         // Testing Only
         this.setupConnection(configManager.get('TEST_TIKTOK_USER'));
+    }
+
+    public static getModuleName(): string {
+        return TiktokInitializer.MODULE_NAME;
     }
 
     setupConnection(username: string): void {
@@ -299,3 +300,5 @@ export class TiktokInitializer implements Module {
         connectionHandler.closeAll();
     }
 }
+
+moduleRegistry.register(TiktokInitializer);

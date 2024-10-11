@@ -1,13 +1,17 @@
-import {eventHandler} from "../framework/EventHandler";
-import {CHAT_MESSAGE_EVENT_NAME, CommentEvent} from "../event/CommentEvent";
-import {JOIN_EVENT_NAME, JoinEvent} from "../event/JoinEvent";
-import {REACT_EVENT_NAME, ReactEvent} from "../event/ReactEvent";
-import {COMBO_GIFT_EVENT_NAME, ComboGiftEvent, GiftSummaryEvent} from "../service/euler-fc-tiktok/event/GiftEvent";
-import {GIFT_EVENT_NAME} from "../event/GiftEvent";
-import {Module} from "../framework/Module";
+import {eventHandler} from "../../framework/EventHandler";
+import {CHAT_MESSAGE_EVENT_NAME, CommentEvent} from "../../event/CommentEvent";
+import {JOIN_EVENT_NAME, JoinEvent} from "../../event/JoinEvent";
+import {REACT_EVENT_NAME, ReactEvent} from "../../event/ReactEvent";
+import {COMBO_GIFT_EVENT_NAME, ComboGiftEvent, GiftSummaryEvent} from "../../modules/euler-fc-tiktok/event/GiftEvent";
+import {GIFT_EVENT_NAME} from "../../event/GiftEvent";
+import {Module} from "../../framework/Module";
+import {moduleRegistry} from "../../framework/ModuleRegistry";
 
 export class ConsoleClient implements Module {
-    moduleName: string = 'client_console';
+    public static MODULE_NAME: string = 'client-console';
+    public static getModuleName(): string {
+        return this.MODULE_NAME;
+    }
 
     initialize(): void {
         eventHandler.addListener(CHAT_MESSAGE_EVENT_NAME, (event: CommentEvent) => {
@@ -34,3 +38,5 @@ export class ConsoleClient implements Module {
         /* No-op */
     }
 }
+
+moduleRegistry.register(ConsoleClient);
