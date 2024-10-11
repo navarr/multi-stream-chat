@@ -21,12 +21,14 @@ import {JoinEvent} from "./event/JoinEvent";
 import {LikeEvent} from "./event/LikeEvent";
 import {FollowEvent} from "./event/FollowEvent";
 import {SubscribeEvent} from "./event/SubscribeEvent";
+import {ComboGiftEvent, GiftImage, GiftSummaryEvent} from "./event/GiftEvent";
 
 /**
  * This class is responsible for initializing the TikTok module
  */
 export class TiktokInitializer implements Module {
     moduleName: string = "TikTok";
+    giftGroups: Record<string, number> = {};
 
     initialize(): void {
         // Create Connection Handler
@@ -88,21 +90,99 @@ export class TiktokInitializer implements Module {
                         break;
                 }
             } catch (e) {
-                logger.error('Unknown error', e);
+                logger.error(e);
             }
         })
     }
 
     private handleGiftEvent(event: LibGiftEvent) {
-        console.log('Gift Details', {
-            'Name': event.gift.name.trim(),
-            'Group ID': event.groupId,
-            'Group Count': event.groupCount,
-            'Per Gift Diamonds': event.gift.diamondCount,
-            'Diamonds': event.gift.diamondCount,
-            'Repeat': event.repeatCount,
-            'Finished?': event.repeatEnd,
-        })
+        if (event.gift === undefined) {
+            console.warn('Gift not defined during gift event', JSON.stringify(event));
+            return;
+        }
+        const groupId = event.groupId;
+        if (groupId === undefined) { // This was a single gift that cannot be repeated
+            // Throw both events
+            eventHandler.submitEvent(new ComboGiftEvent(
+                event.gift.name.trim(),
+                event.gift.diamondCount,
+                event.user?.nickname ?? 'Anonymous',
+                event.user?.displayId ?? 'Anonymous',
+                new GiftImage(event.gift.image?.urlList ? event.gift.image.urlList[0] : 'data:image/png,', event.gift.name.trim()),
+                event.repeatCount
+            ));
+            eventHandler.submitEvent(new GiftSummaryEvent(
+                event.gift.name.trim(),
+                event.gift.diamondCount,
+                event.user?.nickname ?? 'Anonymous',
+                event.user?.displayId ?? 'Anonymous',
+                new GiftImage(event.gift.image?.urlList ? event.gift.image.urlList[0] : 'data:image/png,', event.gift.name.trim()),
+                event.repeatCount
+            ));
+        } else if (event.repeatEnd && this.giftGroups.hasOwnProperty(groupId)) {
+            // If it is repeat end, and the group was previously defined - throw only the summary event
+            eventHandler.submitEvent(new GiftSummaryEvent(
+                event.gift.name.trim(),
+                event.gift.diamondCount * event.repeatCount,
+                event.user?.nickname ?? 'Anonymous',
+                event.user?.displayId ?? 'Anonymous',
+                new GiftImage(event.gift.image?.urlList ? event.gift.image.urlList[0] : 'data:image/png,', event.gift.name.trim()),
+                event.repeatCount
+            ))
+        } else if (event.repeatEnd && !this.giftGroups.hasOwnProperty(groupId)) {
+            // If it is repeat end and the group was not previously defined, throw both events using the total amount for the combo event
+            eventHandler.submitEvent(new ComboGiftEvent(
+                event.gift.name.trim(),
+                event.gift.diamondCount * event.repeatCount,
+                event.user?.nickname ?? 'Anonymous',
+                event.user?.displayId ?? 'Anonymous',
+                new GiftImage(event.gift.image?.urlList ? event.gift.image.urlList[0] : 'data:image/png,', event.gift.name.trim()),
+                event.repeatCount,
+                event.repeatCount
+            ));
+            eventHandler.submitEvent(new GiftSummaryEvent(
+                event.gift.name.trim(),
+                event.gift.diamondCount * event.repeatCount,
+                event.user?.nickname ?? 'Anonymous',
+                event.user?.displayId ?? 'Anonymous',
+                new GiftImage(event.gift.image?.urlList ? event.gift.image.urlList[0] : 'data:image/png,', event.gift.name.trim()),
+                event.repeatCount
+            ));
+        } else {
+            // Otherwise throw just a combo event
+
+            // We don't always get 1 event per combo press.  So we have to track how many have been sent to determine the
+            // new amount of gifts
+            let sentThisEvent = 1;
+            if (this.giftGroups.hasOwnProperty(groupId)) {
+                sentThisEvent = event.repeatCount - this.giftGroups[groupId];
+            } else {
+                sentThisEvent = event.repeatCount;
+            }
+
+            this.giftGroups[groupId] = event.repeatCount;
+            eventHandler.submitEvent(new ComboGiftEvent(
+                event.gift.name.trim(),
+                event.gift.diamondCount,
+                event.user?.nickname ?? 'Anonymous',
+                event.user?.displayId ?? 'Anonymous',
+                new GiftImage(event.gift.image?.urlList ? event.gift.image.urlList[0] : 'data:image/png,', event.gift.name.trim()),
+                event.repeatCount,
+                sentThisEvent
+            ));
+        }
+        if (event.groupCount > 1) {
+            console.log('Gift with groupCount > 1', {
+                'Name': event.gift.name.trim(),
+                'Group ID': event.groupId,
+                'Group Count': event.groupCount,
+                'Per Gift Diamonds': event.gift.diamondCount,
+                'Diamonds': event.gift.diamondCount,
+                'Repeat Count': event.repeatCount,
+                'Combo Count': event.comboCount,
+                'Finished?': event.repeatEnd,
+            })
+        }
     }
 
     private handleSubscribeEvent(event: LibSubscribeEvent) {
@@ -153,7 +233,7 @@ export class TiktokInitializer implements Module {
         ));
     }
 
-    private assembleMessageText(text: string, emoteList: WebcastChatMessageEmoteWithIndex[]): string {
+    private assembleMessageText(text: string = '', emoteList: WebcastChatMessageEmoteWithIndex[]): string {
         let comment = text,
             startLength = 0;
 
