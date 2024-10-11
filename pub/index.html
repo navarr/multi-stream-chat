@@ -107,6 +107,26 @@
         height: 112px;
         display:block;
     }
+
+    #not-at-bottom {
+        position: absolute;
+        display: block;
+        bottom: 0;
+        left: 50%;
+        text-align: center;
+        transform: translateX(-50%);
+        padding: 10px 20px;
+        margin: 10px;
+        background: rgba(0, 0, 0, .5);
+        border-radius: 10px;
+        color: white;
+        text-decoration: none;
+        border: 1px solid black;
+    }
+    #not-at-bottom:hover {
+        border-color: white;
+        background: rgba(0,0,0,1);
+    }
 </style>
 <div id="message-list" data-bind="css: {'hasSticky': stickyMessage() !== null}">
     <div class="list-item stickyEvent">
@@ -270,6 +290,9 @@
         <!-- /ko -->
     </div>
     <!-- /ko -->
+    <a id="not-at-bottom" data-bind="hidden: atBottom, click: jumpToBottom" href="javascript:;">
+      Return to newest messages
+    </a>
 </div>
 <script type="text/javascript" src="bower_components/knockout/dist/knockout.js"></script>
 <script type="text/javascript" src="bower_components/socket.io/client-dist/socket.io.min.js"></script>
@@ -290,7 +313,7 @@
         viewModel.messages = ko.observableArray([]);
         viewModel.pronouns = ko.observable({});
         viewModel.stickyMessage = ko.observable(null);
-        viewModel.atBottom = true;
+        viewModel.atBottom = ko.observable(true);
         viewModel.pauseScrollCalculation = false;
         viewModel.messageListDOM = document.getElementById('message-list');
         viewModel.stickyTimeout = null;
@@ -358,8 +381,12 @@
         }
 
         viewModel.onMessageAdded = function() {
-            if (!viewModel.atBottom) return;
+            if (!viewModel.atBottom()) return;
             viewModel.messageListDOM.scrollTop = viewModel.messageListDOM.scrollHeight;
+        }
+        viewModel.jumpToBottom = function() {
+            viewModel.messageListDOM.scrollTop = viewModel.messageListDOM.scrollHeight;
+            viewModel.atBottom(true);
         }
         viewModel.stickyMessage.subscribe(viewModel.onMessageAdded);
 
@@ -731,11 +758,13 @@
                     info: 'Twitch Successfully Authorized!  Have a nice stream!'
                 })
             })
-
-            document.getElementById('message-list').addEventListener('mousewheel', (e) => {
-                viewModel.atBottom = viewModel.messageListDOM.scrollTop >= (viewModel.messageListDOM.scrollHeight - window.innerHeight);
+            viewModel.determineIfAtBottom = (e) => {
+                viewModel.atBottom(viewModel.messageListDOM.scrollTop >= (viewModel.messageListDOM.scrollHeight - window.innerHeight));
                 console.log(viewModel.messageListDOM.scrollHeight, viewModel.messageListDOM.scrollTop);
-            });
+            }
+
+            document.getElementById('message-list').addEventListener('scrollend', viewModel.determineIfAtBottom);
+            document.getElementById('message-list').addEventListener('mousewheel', viewModel.determineIfAtBottom);
         }
     }
 
