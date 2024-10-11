@@ -129,7 +129,8 @@ class TiktokInitializer implements Module {
                 event.user?.displayId ?? 'Anonymous',
                 new GiftImage(event.gift.image?.urlList ? event.gift.image.urlList[0] : 'data:image/png,', event.gift.name.trim()),
                 event.repeatCount
-            ))
+            ));
+            delete this.giftGroups[groupId];
         } else if (event.repeatEnd && !this.giftGroups.hasOwnProperty(groupId)) {
             // If it is repeat end and the group was not previously defined, throw both events using the total amount for the combo event
             eventHandler.submitEvent(new ComboGiftEvent(

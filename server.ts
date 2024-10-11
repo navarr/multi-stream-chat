@@ -315,6 +315,8 @@ function initializeTikTokThroughEuler(eulerTiktok, channelName) {
         return badges;
     }
 
+    const giftGroups = {};
+
     eulerTiktok.on('gift', (data: GiftEvent) => {
         const giftName = data.gift.name.trim();
         console.log("Gift Name: '" + giftName + "'");
@@ -331,15 +333,39 @@ function initializeTikTokThroughEuler(eulerTiktok, channelName) {
                 badges: assembleBadges(data.user)
             });
         }
+
+        const groupId = data.groupId;
+        let amountToThrow = 0;
+        if (groupId === undefined) {
+            amountToThrow = data.gift.diamondCount;
+        } else if (data.repeatEnd && giftGroups[groupId] !== undefined) {
+            delete giftGroups[groupId];
+        } else if (data.repeatEnd && giftGroups[groupId] === undefined) {
+            amountToThrow = data.gift.diamondCount * data.repeatCount;
+        } else {
+            if (giftGroups[groupId] === undefined) {
+                amountToThrow = data.gift.diamondCount * data.repeatCount;
+            } else {
+                amountToThrow = data.gift.diamondCount * (data.repeatCount - giftGroups[groupId]);
+            }
+
+            giftGroups[groupId] = data.repeatCount;
+        }
+
         if (giftName === 'Heart Me') {
             titsConnection.throwItem('heart', 10);
             titsConnection.throwItem('headpat', 1);
-        } else if (giftName === 'Finger Heart' && data.repeatEnd) {
-            titsConnection.throwItem('headpat', 1);
-        } else if (giftName === 'Tiny Diny' && data.repeatEnd) {
-            titsConnection.throwItem('bonk', 1);
-        } else {
-            titsConnection.throwItem('coin', 1);
+        } else if (giftName === 'Finger Heart') {
+            if (data.repeatEnd) {
+                titsConnection.throwItem('headpat', 1);
+            }
+        } else if (giftName === 'Tiny Diny') {
+            if (data.repeatEnd) {
+                titsConnection.throwItem('bonk', 1);
+            }
+        } else if (amountToThrow > 0) {
+            amountToThrow = Math.ceil(amountToThrow / 2);
+            titsConnection.throwItem('coin', amountToThrow);
         }
     });
 
