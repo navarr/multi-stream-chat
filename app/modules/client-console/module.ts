@@ -6,6 +6,8 @@ import {COMBO_GIFT_EVENT_NAME, ComboGiftEvent, GiftSummaryEvent} from "../../mod
 import {GIFT_EVENT_NAME} from "../../event/GiftEvent";
 import {Module} from "../../framework/Module";
 import {moduleRegistry} from "../../framework/ModuleRegistry";
+import {SHARE_EVENT_NAME, ShareEvent} from "../../event/ShareEvent";
+import {containsAmountSent} from "../../types/GenericComponents";
 
 export class ConsoleClient implements Module {
     public static MODULE_NAME: string = 'client-console';
@@ -32,6 +34,10 @@ export class ConsoleClient implements Module {
 
         eventHandler.addListener(GIFT_EVENT_NAME, (event: GiftSummaryEvent) => {
             console.log(`${event.displayName} sent ${event.amountSent} ${event.name}. (${event.value})`)
+        })
+
+        eventHandler.addListener(SHARE_EVENT_NAME, (event: ShareEvent) => {
+            console.log(`${event.displayName} shared the LIVE${containsAmountSent(event) && event.amountSent > 1 ? ` with ${event.amountSent} people!` : ''}`);
         })
     }
     shutdown(): void {

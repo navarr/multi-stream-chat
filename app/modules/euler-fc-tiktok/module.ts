@@ -13,6 +13,7 @@ import {
     FollowEvent as LibFollowEvent,
     SubscribeEvent as LibSubscribeEvent,
     GiftEvent as LibGiftEvent,
+    ShareEvent as LibShareEvent,
     WebcastChatMessageEmoteWithIndex,
 } from "../../types/TikTokTypes";
 import {eventHandler} from "../../framework/EventHandler";
@@ -23,6 +24,7 @@ import {FollowEvent} from "./event/FollowEvent";
 import {SubscribeEvent} from "./event/SubscribeEvent";
 import {ComboGiftEvent, GiftImage, GiftSummaryEvent} from "./event/GiftEvent";
 import {moduleRegistry} from "../../framework/ModuleRegistry";
+import {ShareEvent} from "./event/ShareEvent";
 
 /**
  * This class is responsible for initializing the TikTok module
@@ -88,6 +90,10 @@ class TiktokInitializer implements Module {
 
                     case 'GiftEvent':
                         this.handleGiftEvent(message.data as LibGiftEvent);
+                        break;
+
+                    case 'SocialEvent':
+                        this.handleShareEvent(message.data as LibShareEvent);
                         break;
                 }
             } catch (e) {
@@ -189,37 +195,45 @@ class TiktokInitializer implements Module {
 
     private handleSubscribeEvent(event: LibSubscribeEvent) {
         eventHandler.submitEvent(new SubscribeEvent(
-            event.user.nickname,
-            event.user.displayId,
+            event.user?.nickname ?? 'Anonymous',
+            event.user?.displayId ?? 'Anonymous',
             event.subMonth
         ));
     }
 
     private handleFollowEvent(event: LibFollowEvent) {
         eventHandler.submitEvent(new FollowEvent(
-            event.user.nickname,
-            event.user.displayId
+            event.user?.nickname ?? 'Anonymous',
+            event.user?.displayId ?? 'Anonymous'
         ));
     }
 
     private handleLikeEvent(event: LibLikeEvent) {
         eventHandler.submitEvent(new LikeEvent(
-            event.user.nickname,
-            event.user.displayId,
+            event.user?.nickname ?? 'Anonymous',
+            event.user?.displayId ?? 'Anonymous',
             event.count
         ));
     }
 
     private handleJoinEvent(event: LibJoinEvent) {
         eventHandler.submitEvent(new JoinEvent(
-            event.user.nickname,
-            event.user.displayId
+            event.user?.nickname ?? 'Anonymous',
+            event.user?.displayId ?? 'Anonymous'
         ));
+    }
+
+    private handleShareEvent(event: LibShareEvent) {
+        eventHandler.submitEvent(new ShareEvent(
+            event.user?.nickname ?? 'Anonymous',
+            event.user?.displayId ?? 'Anonymous',
+            event.share_count
+        ))
     }
 
     private handleCommentEvent(event: LibCommentEvent) {
         let badges: Badge[] = [];
-        if (typeof event.user.badgeList !== 'undefined') {
+        if (event.user && typeof event.user.badgeList !== 'undefined') {
             try {
                 badges = this.assembleBadges(event.user.badgeList);
             } catch (e) {
@@ -227,8 +241,8 @@ class TiktokInitializer implements Module {
             }
         }
         eventHandler.submitEvent(new ChatMessageEvent(
-            event.user.nickname,
-            event.user.displayId,
+            event.user?.nickname ?? 'Anonymous',
+            event.user?.displayId ?? 'Anonymous',
             this.assembleMessageText(event.content, event.emotesList),
             this.assembleMessageHtml(event.content, event.emotesList),
             badges
