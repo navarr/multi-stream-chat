@@ -16,11 +16,8 @@ export class ConnectionHandler {
     private readonly openRetries: Record<string, number> = {};
 
     constructor() {
-        const configuredMaxConnections = configManager.get(this.CONFIG_PATH_MAX_CONNECTIONS, 1);
-        this.maxConnections = typeof configuredMaxConnections === 'string' ? parseInt(configuredMaxConnections) : configuredMaxConnections;
-
-        const allowedRetryAttempts = configManager.get(this.CONFIG_PATH_ALLOWED_RETRIES, 5);
-        this.allowedRetryAttempts = typeof allowedRetryAttempts === 'string' ? parseInt(allowedRetryAttempts) : allowedRetryAttempts;
+        this.maxConnections = configManager.getNumber(this.CONFIG_PATH_MAX_CONNECTIONS, 1);
+        this.allowedRetryAttempts = configManager.getNumber(this.CONFIG_PATH_ALLOWED_RETRIES, 5);
     }
 
     private getEndpointUrl(apiKey: string, username: string): string {
