@@ -1,8 +1,10 @@
 import {CommentEvent as BaseChatMessageEvent} from "../../../event/CommentEvent";
-import {ContainsUsername, CouldBeAction, CouldBeAnnouncement} from "../../../types/GenericComponents";
+import {ContainsUsername, CouldBeAction, CouldBeAnnouncement, FromService} from "../../../types/GenericComponents";
 import {Badge, ContainsBadges} from "../../../types/Badges";
+import {SERVICE_NAME} from "../constants";
 
-export class ChatMessageEvent extends BaseChatMessageEvent implements ContainsUsername, ContainsBadges, CouldBeAction, CouldBeAnnouncement {
+export class ChatMessageEvent extends BaseChatMessageEvent implements FromService, ContainsUsername, ContainsBadges, CouldBeAction, CouldBeAnnouncement {
+    sourceService: string = SERVICE_NAME;
     isAnnouncement: boolean;
     isAction: boolean;
     badges: Badge[];
