@@ -6,9 +6,11 @@ export class ConnectionHandler {
     private readonly CONFIG_PATH_MAX_CONNECTIONS = 'EULER_CONNECTIONS_MAX';
     private readonly CONFIG_PATH_ALLOWED_RETRIES = 'EULER_RETRY_AMOUNT';
     private readonly CONFIG_PATH_EULER_API_KEY = 'EULER_API_KEY';
+    private readonly CONFIG_PATH_TIMEOUT = 'EULER_TIMEOUT';
 
     private readonly maxConnections: number = 1;
     private readonly allowedRetryAttempts: number = 5;
+    private readonly timeout: number = 5000;
     private totalConnections: number = 0;
     private readonly connections: Record<string, WebSocket|null> = {};
     private readonly connectionHeartbeats: Record<string, any> = {};
@@ -18,6 +20,7 @@ export class ConnectionHandler {
     constructor() {
         this.maxConnections = configManager.getNumber(this.CONFIG_PATH_MAX_CONNECTIONS, 1);
         this.allowedRetryAttempts = configManager.getNumber(this.CONFIG_PATH_ALLOWED_RETRIES, 5);
+        this.timeout = configManager.getNumber(this.CONFIG_PATH_TIMEOUT, 5000);
     }
 
     private getEndpointUrl(apiKey: string, username: string): string {
@@ -50,7 +53,7 @@ export class ConnectionHandler {
         logger.info(`Initializing new Euler FC Websocket for ${normalizedUsername}`);
         const endpointUrl = this.getEndpointUrl(configManager.get(this.CONFIG_PATH_EULER_API_KEY), normalizedUsername);
         logger.debug(`Connection to FC Endpoint: ${endpointUrl}`)
-        this.connections[normalizedUsername] = <WebSocket>new WebSocket(endpointUrl);
+        this.connections[normalizedUsername] = <WebSocket>new WebSocket(endpointUrl, {handshakeTimeout: this.timeout});
 
         this.createCleanupEventsForWebsocket(normalizedUsername);
         this.addWebsocketMessageDebugLogging(normalizedUsername);
@@ -68,12 +71,8 @@ export class ConnectionHandler {
     private createCleanupEventsForWebsocket(normalizedUsername: string): void {
         const socket = this.connections[normalizedUsername];
 
-        this.connectionHeartbeats[normalizedUsername] = setInterval(() => {
-            socket.send('ping');
-        }, 5000);
-
         socket.on('close', () => {
-            if (!this.expectedToClose[normalizedUsername] && this.openRetries[normalizedUsername] < this.allowedRetryAttempts) {
+            if (!this.expectedToClose[normalizedUsername] && this.openRetries[normalizedUsername]+1 < this.allowedRetryAttempts) {
                 ++this.openRetries[normalizedUsername];
                 this.connect(normalizedUsername);
                 return;
@@ -108,6 +107,10 @@ export class ConnectionHandler {
 
     private addWebsocketMessageDebugLogging(normalizedUsername: string): void {
         const socket = this.connections[normalizedUsername];
+
+        socket.on('open', () => {
+            logger.debug(`Euler FC WebSocket for ${normalizedUsername} is opened`);
+        });
 
         socket.on('message', (rawMessage: string) => {
             const message = JSON.parse(rawMessage);
