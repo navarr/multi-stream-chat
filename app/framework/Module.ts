@@ -1,4 +1,5 @@
-export interface ModuleConstructor {
+type AbstractModuleConstructor = typeof Module;
+export interface ModuleConstructor extends AbstractModuleConstructor {
     getModuleName(): string;
     new(): Module;
 }
