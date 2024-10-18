@@ -1,13 +1,9 @@
 import {Module} from "./Module";
 
-interface ModuleConstructor<T extends Module> {
-    new(): T;
-}
-
 class ModuleRegistry {
-    modules: Record<string, Module> = {};
+    modules: Record<string, typeof Module> = {};
 
-    register<T extends Module>(module: ModuleConstructor<T>): void {
+    register<T extends typeof Module>(module: T): void {
         const moduleName = module.getModuleName();
         if (this.modules.hasOwnProperty(moduleName)) {
             throw `Module ${moduleName} already registered`;
@@ -15,7 +11,7 @@ class ModuleRegistry {
         this.modules[moduleName] = module;
     }
 
-    get(moduleName: string): Module|undefined {
+    get(moduleName: string): typeof Module {
         return this.modules[moduleName];
     }
 }

@@ -62,7 +62,8 @@ class Logger {
 }
 
 const CONFIG_PATH_LOG_LEVEL = 'LOG_LEVEL';
-const configuredLogLevel = parseInt(configManager.get(CONFIG_PATH_LOG_LEVEL));
+let configuredLogLevel = configManager.get(CONFIG_PATH_LOG_LEVEL, 0)
+configuredLogLevel = typeof configuredLogLevel === 'string' ? parseInt(configuredLogLevel) : configuredLogLevel;
 const logLevelToUse = configuredLogLevel > 0 ? configuredLogLevel : LogLevel.DEBUG;
 
 const logger = new Logger(logLevelToUse);

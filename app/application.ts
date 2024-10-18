@@ -4,7 +4,7 @@ import {moduleRegistry} from "./framework/ModuleRegistry";
 import {logger} from "./framework/Logger";
 
 (async () => {
-    const moduleLoadPaths = configManager.get('MODULE_LOADPATHS').split(',');
+    const moduleLoadPaths = configManager.get('MODULE_LOADPATHS', '').split(',');
     for (let i in moduleLoadPaths) {
         const loadPath = moduleLoadPaths[i];
         const moduleDirectories = fs.readdirSync(loadPath, {withFileTypes: true});
@@ -24,13 +24,14 @@ import {logger} from "./framework/Logger";
 
     const modules = [];
 
-    const modulesToLoad = configManager.get('MODULES').split(',');
+    const modulesToLoad = configManager.get('MODULES', '').split(',');
     modulesToLoad.forEach((moduleName) => {
         const moduleType = moduleRegistry.get(moduleName);
         if (moduleType === undefined) {
             logger.warn(`Could not load module of type ${moduleName}`);
             return;
         }
+        // @ts-ignore
         modules.push(new moduleType);
     })
 
