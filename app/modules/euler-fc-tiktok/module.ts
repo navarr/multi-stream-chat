@@ -42,8 +42,8 @@ class TiktokInitializer implements Module {
         return TiktokInitializer.MODULE_NAME;
     }
 
-    setupConnection(username: string): void {
-        const socket = connectionHandler.getConnection(username);
+    public async setupConnection(username: string): Promise<void> {
+        const socket = await connectionHandler.getConnection(username);
         socket.on('message', (rawMessage: string) => {
             let message: { type: string | undefined, name: string | undefined, data: object };
             try {

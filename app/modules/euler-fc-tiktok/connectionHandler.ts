@@ -32,7 +32,7 @@ export class ConnectionHandler {
         return typeof this.connections[normalizedUsername] !== 'undefined' && this.connections[normalizedUsername] !== null;
     }
 
-    public getConnection(username: string): WebSocket {
+    public async getConnection(username: string): Promise<WebSocket> {
         const normalizedUsername = this.normalizerUsername(username);
         if (!this.hasConnectionFor(normalizedUsername)) {
             if (this.totalConnections + 1 > this.maxConnections) {
@@ -41,7 +41,7 @@ export class ConnectionHandler {
             ++this.totalConnections;
             this.expectedToClose[normalizedUsername] = false;
             this.openRetries[normalizedUsername] = 0;
-            this.connect(normalizedUsername);
+            await this.connect(normalizedUsername);
         } else {
             logger.info(`Euler FC Connection Handler is returning existing WebSocket connection for ${normalizedUsername}`);
         }
