@@ -1,9 +1,9 @@
-import {Module} from "./Module";
+import {ModuleConstructor} from "./Module";
 
 class ModuleRegistry {
-    modules: Record<string, typeof Module> = {};
+    modules: Record<string, ModuleConstructor> = {};
 
-    register<T extends typeof Module>(module: T): void {
+    register<T extends ModuleConstructor>(module: T): void {
         const moduleName = module.getModuleName();
         if (this.modules.hasOwnProperty(moduleName)) {
             throw `Module ${moduleName} already registered`;
@@ -11,7 +11,7 @@ class ModuleRegistry {
         this.modules[moduleName] = module;
     }
 
-    get(moduleName: string): typeof Module {
+    get(moduleName: string): ModuleConstructor {
         return this.modules[moduleName];
     }
 }

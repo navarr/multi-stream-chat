@@ -31,7 +31,6 @@ import {logger} from "./framework/Logger";
             logger.warn(`Could not load module of type ${moduleName}`);
             return;
         }
-        // @ts-ignore
         modules.push(new moduleType);
     })
 
