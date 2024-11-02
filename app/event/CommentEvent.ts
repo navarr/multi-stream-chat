@@ -1,9 +1,10 @@
 import {ContainsDisplayName, ContainsMessage} from "../types/GenericComponents";
 import {Event} from "./Event"
+import {SimpleMessage} from "../types/SimpleMessage";
 
 const CHAT_MESSAGE_EVENT_NAME = 'comment';
 
-class CommentEvent implements Event, ContainsMessage, ContainsDisplayName {
+class CommentEvent implements Event, SimpleMessage, ContainsMessage, ContainsDisplayName {
     eventType: string = CHAT_MESSAGE_EVENT_NAME;
     displayName: string;
     messageHtml: string;

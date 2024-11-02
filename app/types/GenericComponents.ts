@@ -1,11 +1,26 @@
 import {Color} from "./Color";
 import {Image} from "./Images";
+import {SimpleMessage} from "./SimpleMessage";
 
 export interface ContainsDisplayName {
     displayName: string
 }
 export function containsDisplayName(obj: any): obj is ContainsDisplayName {
     return obj.hasOwnProperty('displayName');
+}
+
+export interface ContainsUserAvatar {
+    avatar: Image
+}
+export function containsUserAvatar(obj: any): obj is ContainsUserAvatar {
+    return obj.hasOwnProperty('avatar');
+}
+
+export interface ContainsParentMessage {
+    parentMessage: SimpleMessage;
+}
+export function containsParentMessage(obj: any): obj is ContainsParentMessage {
+    return obj.hasOwnProperty('messageText');
 }
 
 export interface ContainsUsername {
@@ -21,20 +36,6 @@ export interface ContainsMessage {
 }
 export function containsMessage(obj: any): obj is ContainsMessage {
     return obj.hasOwnProperty('messageText') && obj.hasOwnProperty('messageHtml');
-}
-
-export interface CouldBeAction {
-    isAction: boolean
-}
-export function isAction(obj: any): obj is CouldBeAction {
-    return obj.hasOwnProperty('isAction') && obj.isAction;
-}
-
-export interface CouldBeAnnouncement {
-    isAnnouncement: boolean
-}
-export function isAnnouncement(obj: any): obj is CouldBeAnnouncement {
-    return obj.hasOwnProperty('isAnnouncement') && obj.isAnnouncement;
 }
 
 export interface FromService {

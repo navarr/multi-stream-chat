@@ -30,13 +30,13 @@ class BadgeManager {
         return this.badges[badgeId][badgeVersionId] ?? null;
     }
 
-    public async loadGlobalTwitchBadges(apiClient: ApiClient) {
+    public async loadGlobalTwitchBadges(apiClient: ApiClient): Promise<void> {
         const badges = await apiClient.chat.getGlobalBadges();
         this.storeBadges(badges);
         this.globalBadgesLoaded = true;
     }
 
-    public async loadChannelTwitchBadges(apiClient: ApiClient, channelId: string) {
+    public async loadChannelTwitchBadges(apiClient: ApiClient, channelId: string): Promise<void> {
         if (!this.globalBadgesLoaded) await this.loadGlobalTwitchBadges(apiClient);
 
         const badges = await apiClient.chat.getChannelBadges(channelId);

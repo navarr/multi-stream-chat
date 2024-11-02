@@ -5,7 +5,7 @@ export interface ModuleConstructor extends AbstractModuleConstructor {
 }
 
 export abstract class Module {
-    abstract initialize(config: any): void;
+    abstract initialize(config: any): void|Promise<void>;
     abstract shutdown(): void;
 
     public static getModuleName(): string {
