@@ -1,6 +1,7 @@
 import {GiftEvent as BaseGiftEvent} from "../../../event/GiftEvent";
-import {ContainsAmountSent, ContainsImage, ContainsUsername} from "../../../types/GenericComponents";
+import {ContainsAmountSent, ContainsImage, ContainsUsername, FromService} from "../../../types/GenericComponents";
 import {Image} from "../../../types/Images";
+import {SERVICE_NAME} from "../constants";
 
 class GiftImage implements Image {
     imageUrl: string;
@@ -17,10 +18,11 @@ class GiftImage implements Image {
  *
  * Useful for making things happen after all gifts in a combo have been given (summary style)
  */
-class GiftSummaryEvent extends BaseGiftEvent implements ContainsUsername, ContainsAmountSent, ContainsImage {
+class GiftSummaryEvent extends BaseGiftEvent implements FromService, ContainsUsername, ContainsAmountSent, ContainsImage {
     username: string;
     amountSent: number;
     image: GiftImage;
+    sourceService: string = SERVICE_NAME;
 
     constructor(name: string, value: number, displayName: string, username: string, image: GiftImage, amountSent: number = 1) {
         super(name, value, 'diamonds', displayName)

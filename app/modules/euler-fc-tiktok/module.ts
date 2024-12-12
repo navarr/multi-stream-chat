@@ -92,7 +92,7 @@ class TiktokInitializer implements Module {
                         this.handleGiftEvent(message.data as LibGiftEvent);
                         break;
 
-                    case 'SocialEvent':
+                    case 'ShareEvent':
                         this.handleShareEvent(message.data as LibShareEvent);
                         break;
                 }
