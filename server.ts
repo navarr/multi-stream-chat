@@ -12,9 +12,11 @@ const {ApiClient} = require("@twurple/api");
 const {EventSubWsListener} = require("@twurple/eventsub-ws");
 const {YoutubeMessageProcessor} = require('./youtubeMessageProcessor')
 const {TITSConnectionWrapper} = require('./titsConnectionWrapper')
+const {OscConnectionWrapper} = require('./oscConnectionWrapper');
 const bodyParser = require('body-parser');
 import {FollowEvent, LikeEvent, ShareEvent, SubscribeEvent, CommentEvent, GiftEvent} from "@tiktoklive/types";
 import {EulerConnectionWrapper} from "./eulerConnectionWrapper";
+import {RedGreenBlueAlpha} from "./app/types/Color";
 
 let twitchIsAuthorized = false;
 
@@ -36,6 +38,7 @@ const twitchClientId = process.env.TWITCH_CLIENT_ID;
 const twitchClientSecret = process.env.TWITCH_CLIENT_SECRET;
 const twitchAuthProvider = new RefreshingAuthProvider({clientId: twitchClientId, clientSecret: twitchClientSecret});
 const twitchApiClient = new ApiClient({authProvider: twitchAuthProvider});
+const oscClient = new OscConnectionWrapper(process.env.OSC_HOST, process.env.OSC_PORT);
 
 const youtubeMessageConverter = new YoutubeMessageProcessor()
 
@@ -57,7 +60,6 @@ function storeBadges(badges, output) {
 
 // Setup YouTube stuff
 const youtubeApiKey = process.env.YOUTUBE_API_KEY
-
 const pronounDB = new PronounDatabase;
 
 function getTwitchPronouns(username) {
@@ -127,6 +129,25 @@ function initializePostTwitchAuthorization(TWITCH_CHANNEL_ID) {
         } catch (e) {
             console.error('Couldn\'t convert bits message', e)
         }
+
+        let gift = 'Rose';
+        if (e.bits >= 544) {
+            gift = 'Fireworks'
+        } else if (e.bits >= 500) {
+            gift = 'Galaxy';
+        } else if (e.bits >= 199) {
+            gift = 'Sunglasses';
+        } else if (e.bits >= 99) {
+            gift = 'Hat_and_Mustache';
+        } else if (e.bits >= 30) {
+            gift = 'Doughnut';
+        } else if (e.bits >= 10) {
+            gift = 'Tiny_Diny';
+        } else if (messageText.includes('ShowLove')) {
+            gift = 'Heart_Me';
+        }
+
+        oscClient.sendHyroeActivation(gift);
 
         sendMessage({
             source: 'twitch',
@@ -262,6 +283,9 @@ function initializePostTwitchAuthorization(TWITCH_CHANNEL_ID) {
                 displayName: e.parentMessageUserDisplayName
             }
         }
+        if (e.messageText.startsWith('!boop')) {
+            oscClient.sendBoop();
+        }
         sendMessage(message);
     });
 }
@@ -298,17 +322,21 @@ function initializeTikTok(TIKTOK_CHANNEL) {
 }
 
 function initializeTikTokThroughEuler(eulerTiktok, channelName) {
+    function convertTikTokColorToRgba(tiktokColor: string) {
+        return '#' + tiktokColor.substring(3, 9) + tiktokColor.substring(1,3);
+    }
+
     function assembleBadges(user) {
         const badges = [];
-        for (let badgeIncrement in user.badgeList) {
-            const badge = user.badgeList[badgeIncrement];
-            if (badge.displayType === 'BADGEDISPLAYTYPE_COMBINE') {
+        for (let badgeIncrement in user.badge_list) {
+            const badge = user.badge_list[badgeIncrement];
+            if (badge.display_type === 'BADGEDISPLAYTYPE_COMBINE') {
                 badges.push({
                     type: 'wrappedImage',
                     text: badge.combine.str ?? '',
                     background: badge.combine.background,
-                    backgroundDark: badge.combine.backgroundDarkMode,
-                    image: badge.combine.icon.urlList[0]
+                    backgroundDark: badge.combine.background_dark_mode,
+                    image: badge.combine.icon.url_list[0]
                 })
             }
         }
@@ -316,51 +344,70 @@ function initializeTikTokThroughEuler(eulerTiktok, channelName) {
     }
 
     const giftGroups = {};
+    const hyroeMap = {
+        'Heart Me': 'Heart_Me',
+        'Tiny Diny': 'Tiny_Diny',
+        'Lightning Bolt': 'Lightning_Bolt',
+        'Rose': 'Rose',
+        'Finger Heart': 'Finger_Heart',
+        'Doughnut': 'Doughnut',
+        'Hat and Mustache': 'Hat_and_Mustache',
+        'Game Controller': 'Game_Controller',
+        'Sunglasses': 'Sunglasses',
+        'Fireworks': 'Fireworks',
+        'Galaxy': 'Galaxy'
+    }
 
     eulerTiktok.on('gift', (data: GiftEvent) => {
         const giftName = data.gift.name.trim();
         console.log("Gift Name: '" + giftName + "'");
-        if (data.repeatEnd || typeof data.groupId === 'undefined') { // no group, no combo
-            let diamondCount = data.gift.diamondCount * data.repeatCount;
+        if (data.repeat_end || typeof data.group_id === 'undefined') { // no group, no combo
+            let diamondCount = data.gift.diamond_count * data.repeat_count;
             io.sockets.emit('gift', {
                 source: 'tiktok',
                 displayName: data.user.nickname,
-                username: data.user.displayId,
+                username: data.user.display_id,
                 diamondCount: diamondCount,
                 giftName: giftName,
-                giftAmount: data.repeatCount,
-                giftImage: data.gift.image.urlList[0],
+                giftAmount: data.repeat_count,
+                giftImage: data.gift.image.url_list[0],
                 badges: assembleBadges(data.user)
             });
         }
 
-        const groupId = data.groupId;
+        console.log('Hyroe Test', giftName, hyroeMap[giftName]);
+        if (hyroeMap[giftName] != undefined) {
+            console.log('Activating Hyroe');
+            oscClient.sendHyroeActivation(hyroeMap[giftName]);
+        }
+
+        const groupId = data.group_id;
         let amountToThrow = 0;
         if (groupId === undefined) {
-            amountToThrow = data.gift.diamondCount;
-        } else if (data.repeatEnd && giftGroups[groupId] !== undefined) {
+            amountToThrow = data.gift.diamond_count;
+        } else if (data.repeat_end && giftGroups[groupId] !== undefined) {
             delete giftGroups[groupId];
-        } else if (data.repeatEnd && giftGroups[groupId] === undefined) {
-            amountToThrow = data.gift.diamondCount * data.repeatCount;
+        } else if (data.repeat_end && giftGroups[groupId] === undefined) {
+            amountToThrow = data.gift.diamond_count * data.repeat_count;
         } else {
             if (giftGroups[groupId] === undefined) {
-                amountToThrow = data.gift.diamondCount * data.repeatCount;
+                amountToThrow = data.gift.diamond_count * data.repeat_count;
             } else {
-                amountToThrow = data.gift.diamondCount * (data.repeatCount - giftGroups[groupId]);
+                amountToThrow = data.gift.diamond_count * (data.repeat_count - giftGroups[groupId]);
             }
 
-            giftGroups[groupId] = data.repeatCount;
+            giftGroups[groupId] = data.repeat_count;
         }
 
         if (giftName === 'Heart Me') {
             titsConnection.throwItem('heart', 10);
             titsConnection.throwItem('headpat', 1);
         } else if (giftName === 'Finger Heart') {
-            if (data.repeatEnd) {
+            if (data.repeat_end) {
                 titsConnection.throwItem('headpat', 1);
             }
         } else if (giftName === 'Tiny Diny') {
-            if (data.repeatEnd) {
+            if (data.repeat_end) {
                 titsConnection.throwItem('bonk', 1);
             }
         } else if (amountToThrow > 0) {
@@ -374,10 +421,10 @@ function initializeTikTokThroughEuler(eulerTiktok, channelName) {
         io.sockets.emit('subscribe', {
             // tier, months, streak, isPrime
             type: 'subscribe',
-            months: data.subMonth,
+            months: data.sub_month,
             source: 'tiktok',
             displayName: data.user.nickname,
-            username: data.user.displayId
+            username: data.user.display_id
         });
     });
 
@@ -387,15 +434,16 @@ function initializeTikTokThroughEuler(eulerTiktok, channelName) {
             reactType: 'like',
             source: 'tiktok',
             displayName: data.user.nickname,
-            username: data.user.displayId
+            username: data.user.display_id
         })
     });
 
     eulerTiktok.on('follow', (data: FollowEvent) => {
+        console.log('follow event');
         io.sockets.emit('follow', {
             source: 'tiktok',
             displayName: data.user.nickname,
-            username: data.user.displayId
+            username: data.user.display_id
         })
     })
 
@@ -403,13 +451,21 @@ function initializeTikTokThroughEuler(eulerTiktok, channelName) {
         io.sockets.emit('share', {
             source: 'tiktok',
             displayName: data.user.nickname,
-            username: data.user.displayId
+            username: data.user.display_id
         })
     })
 
-    eulerTiktok.on('connect', () => {
+    eulerTiktok.on('connected', () => {
         io.sockets.emit('log', {message: `Connected to Euler TikTok service for ${channelName}`});
+    })
+
+    eulerTiktok.on('connect', () => {
+        io.sockets.emit('log', {message: `Successfully joined room on Euler for ${channelName}`});
     });
+
+    eulerTiktok.on('disconnected', () => {
+        io.sockets.emit('log', {message: `Disconnected from Euler Websocket for ${channelName}`});
+    })
 
     eulerTiktok.on('disconnect', () => {
         io.sockets.emit('log', {message: `Disconnected from Euler Tiktok Service for ${channelName}`});
@@ -419,9 +475,9 @@ function initializeTikTokThroughEuler(eulerTiktok, channelName) {
         let comment = typeof data.content !== 'undefined' ? data.content : '';
 
         let startLength = 0;
-        for (let emoteIndex in data.emotesList) {
-            const emote = data.emotesList[emoteIndex];
-            const imageString = `<img src="${emote.emote.image.urlList[0]}">`;
+        for (let emoteIndex in data.emotes_list) {
+            const emote = data.emotes_list[emoteIndex];
+            const imageString = `<img src="${emote.emote.image.url_list[0]}">`;
             startLength += imageString.length;
             comment = comment.substring(0, emote.index + startLength) + imageString + comment.substring(emote.index + startLength);
         }
@@ -507,14 +563,18 @@ function initializeTikTokThroughEuler(eulerTiktok, channelName) {
          * }
          */
 
+        if (comment.startsWith('!boop')) {
+            oscClient.sendBoop();
+        }
+
         sendMessage({
             type: 'chat',
             badges: assembleBadges(data.user),
             source: 'tiktok',
             displayName: data.user.nickname,
-            username: data.user.displayId,
+            username: data.user.display_id,
             messageText: comment,
-            profileImage: data.user.avatarThumb.urlList[0]
+            profileImage: data.user.avatar_thumb.url_list[0]
         })
     })
 }
@@ -810,6 +870,9 @@ async function subscribeToYouTubeChat(liveChatId, videoId) {
                     profileImage: message.authorDetails.profileImageUrl,
                     timeInMillis: new Date(message.snippet.publishedAt).getTime()
                 })
+                if (message.snippet.displayMessage.startsWith('!boop')) {
+                    oscClient.sendBoop();
+                }
             }
             if (typeof chatDetails.offlineAt === 'undefined') {
                 // We use Math.max here to limit requests to once per 10 seconds, which should be enough for 2 videos over 3 hours

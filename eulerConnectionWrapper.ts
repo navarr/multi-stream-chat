@@ -21,7 +21,8 @@ class EulerConnectionWrapper extends EventEmitter {
 
     constructor(apiKey: string, uniqueId: string) {
         super();
-        this.endpointUrl = `wss://cloud.eulerstream.com/ws?api_key=${apiKey}&unique_id=${uniqueId}`;
+        this.endpointUrl = `ws://127.0.0.1:3005/ws?unique_id=${uniqueId}&api_key=${apiKey}`;
+//        this.endpointUrl = `wss://cloud.eulerstream.com/ws?api_key=${apiKey}&unique_id=${uniqueId}`;
     }
 
     emit(event: string | symbol, ...args): boolean {
@@ -39,11 +40,13 @@ class EulerConnectionWrapper extends EventEmitter {
 
         this.websocket.on('open', () => {
             this.clientDisconnected = false;
+            this.emit('connected');
             console.log('Connected to Euler Server');
         })
 
         this.websocket.on('error', (e) => {
             console.error('EulerStream connection error');
+            this.emit('disconnect');
             this.clientDisconnected = true;
             if (this.reconnectEnabled) {
                 while(this.reconnectCount < this.maxReconnectAttempts) {
@@ -107,9 +110,9 @@ class EulerConnectionWrapper extends EventEmitter {
                     break;
                 case 'SocialEvent':
                     if (message.data.action === '1') {
-                        this.emit('follow', message.data as FollowEvent);
+                        //this.emit('follow', message.data as FollowEvent);
                     } else if (message.data.action === '3') {
-                        this.emit('share', message.data as ShareEvent);
+                        //this.emit('share', message.data as ShareEvent);
                     } else {
                         console.log('SocialEvent', message.data);
                     }

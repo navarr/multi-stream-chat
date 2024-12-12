@@ -441,9 +441,9 @@
                     for (let badgeIncrement in data.badges) {
                         let background;
                         if (typeof data.badges[badgeIncrement].backgroundDark !== 'undefined') {
-                            background = data.badges[badgeIncrement].backgroundDark.backgroundColorCode ?? 'inherit';
+                            background = data.badges[badgeIncrement].backgroundDark.background_color_code ?? 'inherit';
                         } else if (typeof data.badges[badgeIncrement].background !== 'undefined') {
-                            background = data.badges[badgeIncrement].background.backgroundColorCode ?? 'inherit';
+                            background = data.badges[badgeIncrement].background.background_color_code ?? 'inherit';
                         } else {
                             background = 'inherit';
                         }
